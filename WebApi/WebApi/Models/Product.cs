@@ -2,15 +2,15 @@
 
 public class Product
 {
-    private string Id;
-    private string Name;
-    private string SKU;
-    private string Description;
-    private decimal Price;
-    private int QuantityInStock;
-    private string supplierName;
-    private DateTime ExpiryDate;
-    private bool IsArchived;
-    private DateTime CreatedAt;
-    private DateTime LastUpdatedAt;
+    public string Id;
+    public string Name;
+    public string SKU;
+    public string Description;
+    public decimal Price;
+    public int QuantityInStock;
+    public string SupplierName;
+    public DateTime ExpiryDate;
+    public bool IsArchived;
+    public DateTime CreatedAt;
+    public DateTime LastUpdatedAt;
 }
