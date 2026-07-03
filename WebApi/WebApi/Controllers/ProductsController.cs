@@ -1,6 +1,8 @@
 ﻿namespace WebApi.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.DB;
+using WebApi.Contracts;
+using WebApi.Models;
 
 [ApiController]
 [Route("api/products")]
@@ -46,5 +48,35 @@ public class ProductsController : ControllerBase
         ).ToList();
 
         return Ok(results);
+    }
+    
+    // 4. POST /api/products
+    [HttpPost]
+    public IActionResult Create([FromBody] CreateProductRequest request)
+    {
+        bool duplicateSku = FakeWarehouseStore.Products
+            .Any(p => p.SKU.Equals(request.SKU, StringComparison.OrdinalIgnoreCase));
+
+        if (duplicateSku)
+            return BadRequest($"A product with SKU '{request.SKU}' already exists.");
+
+        var product = new Product
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = request.Name,
+            SKU = request.SKU,
+            Description = request.Description,
+            Price = request.Price,
+            QuantityInStock = request.QuantityInStock,
+            SupplierName = request.SupplierName,
+            ExpiryDate = request.ExpiryDate,
+            IsArchived = false,
+            CreatedAt = DateTime.Now,
+            LastUpdatedAt = DateTime.Now
+        };
+
+        FakeWarehouseStore.Products.Add(product);
+
+        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
     }
 }
