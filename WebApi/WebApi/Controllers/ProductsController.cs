@@ -177,4 +177,26 @@ public class ProductsController : ControllerBase
         var formatted = DateTime.Now.ToString("F", new CultureInfo(culture));
         return Ok(new { culture, serverTime = formatted });
     }
+    
+    // assign supplier
+    [HttpPost("{id}/assign-supplier/{supplierId}")]
+    public IActionResult AssignSupplier([FromRoute] string id, [FromRoute] string supplierId)
+    {
+        var product = FakeWarehouseStore.Products.FirstOrDefault(p => p.Id == id);
+        if (product == null)
+            return NotFound("Product not found.");
+
+        var supplier = FakeSupplierStore.Suppliers.FirstOrDefault(s => s.Id == supplierId);
+        if (supplier == null)
+            return NotFound("Supplier not found.");
+
+        if (product.IsArchived)
+            return BadRequest("Cannot assign a supplier to an archived product.");
+
+        product.SupplierId = supplier.Id;
+        product.SupplierName = supplier.Name;
+        product.LastUpdatedAt = DateTime.Now;
+
+        return Ok(product);
+    }
 }
