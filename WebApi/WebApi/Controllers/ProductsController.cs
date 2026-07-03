@@ -18,4 +18,18 @@ public class ProductsController : ControllerBase
 
         return Ok(products.ToList());
     }
+    
+    // get by id endpoint 2 (GET/api/products/{id})
+    [HttpGet("{id}")]
+    public IActionResult GetById([FromRoute] string id)
+    {
+        if (!Guid.TryParse(id, out _))
+            return BadRequest("Invalid id format.");
+
+        var product = FakeWarehouseStore.Products.FirstOrDefault(p => p.Id == id);
+        if (product == null)
+            return NotFound();
+
+        return Ok(product);
+    }
 }
