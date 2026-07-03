@@ -95,7 +95,7 @@ public class ProductsController : ControllerBase
         product.QuantityInStock = request.QuantityInStock;
         product.LastUpdatedAt = DateTime.Now;
 
-        return NoContent();
+        return Ok("Update Done");
     }
 
     // 6 update price
@@ -114,7 +114,7 @@ public class ProductsController : ControllerBase
         product.Price = request.Price;
         product.LastUpdatedAt = DateTime.Now;
 
-        return NoContent();
+        return Ok("Update done");
     }
 
     // 7 update image 
@@ -160,7 +160,7 @@ public class ProductsController : ControllerBase
         product.IsArchived = true;
         product.LastUpdatedAt = DateTime.Now;
 
-        return NoContent();
+        return Ok("Delete done");
     }
 
     // 9 get time
