@@ -1,0 +1,44 @@
+﻿## .NET build results
+bin/
+obj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ll]og/
+[Ll]ogs/
+
+## JetBrains Rider
+.idea/
+*.sln.iml
+*.iml
+
+## NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+
+## Build artifacts
+*.dll
+*.exe
+*.pdb
+
+## ASP.NET Core specific
+appsettings.Development.json
+wwwroot/uploads/*
+!wwwroot/uploads/.gitkeep
+
+## Test results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+
+## OS files
+.DS_Store
+Thumbs.db
