@@ -2,5 +2,5 @@
 
 public class UpdateProductQuantityRequest
 {
-    public int QuantityInStock;
+    public int QuantityInStock{ get; set; }
 }

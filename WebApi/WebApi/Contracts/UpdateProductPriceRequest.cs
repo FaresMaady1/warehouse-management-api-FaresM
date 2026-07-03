@@ -2,5 +2,5 @@
 
 public class UpdateProductPriceRequest
 {
-    public decimal Price;
+    public decimal Price{ get; set; }
 }

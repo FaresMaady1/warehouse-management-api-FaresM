@@ -2,7 +2,7 @@
 
 public class ProductImage
 {
-    private string ProductId;
-    private string FileName;
-    private string FilePath;
+    private string ProductId { get; set; }
+    private string FileName { get; set; }
+    private string FilePath { get; set; }
 }
