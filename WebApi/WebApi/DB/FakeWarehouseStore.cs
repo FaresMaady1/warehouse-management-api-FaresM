@@ -3,7 +3,7 @@ using WebApi.Models;
 
 public class FakeWarehouseStore
 {
-          private static List<Product> _products = new List<Product>
+          public static List<Product> _products = new List<Product>
         {
             new Product
             {
