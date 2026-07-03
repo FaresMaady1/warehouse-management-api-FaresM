@@ -32,4 +32,19 @@ public class ProductsController : ControllerBase
 
         return Ok(product);
     }
+    
+    // endpoint 3 search
+    [HttpGet("search")]
+    public IActionResult Search([FromQuery] string? name, [FromQuery] string? supplier)
+    {
+        if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(supplier))
+            return BadRequest("Provide at least one of 'name' or 'supplier'.");
+
+        var results = FakeWarehouseStore.Products.Where(p =>
+            (string.IsNullOrWhiteSpace(name) || (p.Name?.Contains(name, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+            (string.IsNullOrWhiteSpace(supplier) || p.SupplierName.Contains(supplier, StringComparison.OrdinalIgnoreCase))
+        ).ToList();
+
+        return Ok(results);
+    }
 }
