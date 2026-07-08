@@ -153,6 +153,7 @@ Updating quantity to the deleted product
 <img width="1776" height="735" alt="image" src="https://github.com/user-attachments/assets/331c338a-0ab3-4704-baa8-fc657a0cb390" />
 
 ### Unit tests
+
 <img width="835" height="308" alt="image" src="https://github.com/user-attachments/assets/61b680da-3092-4069-bc33-a4ef4913974c" />
 
 ### Notes
