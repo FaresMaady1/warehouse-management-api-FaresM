@@ -1,56 +1,42 @@
-﻿namespace WebApi.Controllers;
+namespace WebApi.Controllers;
+
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Contracts;
-using WebApi.Services;
+using Warehouse.Application.Commands.Suppliers;
+using Warehouse.Application.Queries.Suppliers;
 
 [ApiController]
 [Route("api/suppliers")]
 public class SuppliersController : ControllerBase
 {
-    private readonly ISupplierService _supplierService;
+    private readonly IMediator _mediator;
+    public SuppliersController(IMediator mediator) => _mediator = mediator;
 
-    public SuppliersController(ISupplierService supplierService)
-    {
-        _supplierService = supplierService;
-    }
-
-    // get all suppliers
     [HttpGet]
-    public IActionResult GetAll()
-    {
-        return Ok(_supplierService.GetAll());
-    }
+    public async Task<IActionResult> GetAll()
+        => Ok(await _mediator.Send(new ListSuppliersQuery()));
 
-    // get a supplier by id
     [HttpGet("{id}")]
-    public IActionResult GetById([FromRoute] string id)
+    public async Task<IActionResult> GetById([FromRoute] string id)
     {
-        var supplier = _supplierService.GetById(id);
-        if (supplier == null)
-            return NotFound();
-
-        return Ok(supplier);
+        var supplier = await _mediator.Send(new GetSupplierByIdQuery(id));
+        return supplier == null ? NotFound() : Ok(supplier);
     }
 
-    // add a supplier
     [HttpPost]
-    public IActionResult Create([FromBody] CreateSupplierRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateSupplierRequest request)
     {
-        var supplier = _supplierService.Create(request);
+        var supplier = await _mediator.Send(new CreateSupplierCommand(
+            request.Name, request.Country, request.ContactEmail, request.PhoneNumber));
 
         return CreatedAtAction(nameof(GetById), new { id = supplier.Id }, supplier);
     }
 
-    // Soft delete
     [HttpDelete("{id}")]
-    public IActionResult Deactivate([FromRoute] string id)
+    public async Task<IActionResult> Deactivate([FromRoute] string id)
     {
-        var supplier = _supplierService.GetById(id);
-        if (supplier == null)
-            return NotFound();
-
-        _supplierService.Deactivate(supplier);
-
-        return Ok("Delete Done");
+        var supplier = await _mediator.Send(new DeactivateSupplierCommand(id));
+        return supplier == null ? NotFound() : Ok("Delete Done");
     }
 }
