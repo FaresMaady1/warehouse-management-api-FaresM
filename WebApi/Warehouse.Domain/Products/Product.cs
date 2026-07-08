@@ -48,7 +48,6 @@ public class Product
         };
     }
 
-    // Used only by Infrastructure to rehydrate seed/stored data with a fixed Id/CreatedAt.
     public static Product Restore(string id, string name, string sku, string description, decimal price,
         int quantityInStock, string supplierName, string? supplierId, DateTime expiryDate,
         bool isArchived, DateTime createdAt, DateTime lastUpdatedAt)
