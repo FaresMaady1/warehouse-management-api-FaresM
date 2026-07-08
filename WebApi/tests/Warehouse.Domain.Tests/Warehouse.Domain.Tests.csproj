@@ -20,4 +20,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Warehouse.Domain\Warehouse.Domain.csproj" />
+    <ProjectReference Include="..\..\Warehouse.Application\Warehouse.Application.csproj" />
+  </ItemGroup>
+
 </Project>
