@@ -1,8 +1,8 @@
 namespace Warehouse.Domain.Tests;
 
-using Warehouse.Application.Handlers.Products;
-using Warehouse.Application.Queries.Products;
+using Warehouse.Application.Queries.GetProductById;
 using Warehouse.Domain.Products;
+using Warehouse.Domain.Repositories;
 using Xunit;
 
 public class GetProductByIdHandlerTests

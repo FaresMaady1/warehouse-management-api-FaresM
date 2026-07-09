@@ -3,8 +3,10 @@ namespace WebApi.Controllers;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Contracts;
-using Warehouse.Application.Commands.Suppliers;
-using Warehouse.Application.Queries.Suppliers;
+using Warehouse.Application.Commands.CreateSupplier;
+using Warehouse.Application.Commands.DeactivateSupplier;
+using Warehouse.Application.Queries.ListSuppliers;
+using Warehouse.Application.Queries.GetSupplierById;
 
 [ApiController]
 [Route("api/suppliers")]

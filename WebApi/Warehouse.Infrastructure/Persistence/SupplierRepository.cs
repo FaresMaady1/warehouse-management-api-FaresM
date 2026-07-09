@@ -1,5 +1,5 @@
 namespace Warehouse.Infrastructure.Persistence;
-
+using Warehouse.Domain.Repositories;
 using Warehouse.Domain.Suppliers;
 
 public class SupplierRepository : ISupplierRepository

@@ -1,7 +1,6 @@
 using MediatR;
-using Warehouse.Application.Commands.Products;
-using Warehouse.Domain.Products;
-using Warehouse.Domain.Suppliers;
+using Warehouse.Application.Commands.CreateProduct;
+using Warehouse.Domain.Repositories;
 using Warehouse.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);

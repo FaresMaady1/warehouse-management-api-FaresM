@@ -4,8 +4,15 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using WebApi.Contracts;
-using Warehouse.Application.Commands.Products;
-using Warehouse.Application.Queries.Products;
+using Warehouse.Application.Commands.CreateProduct;
+using Warehouse.Application.Commands.UpdateProductQuantity;
+using Warehouse.Application.Commands.UpdateProductPrice;
+using Warehouse.Application.Commands.ArchiveProduct;
+using Warehouse.Application.Commands.AssignSupplierToProduct;
+using Warehouse.Application.Commands.UploadProductImage;
+using Warehouse.Application.Queries.GetProductById;
+using Warehouse.Application.Queries.ListProducts;
+using Warehouse.Application.Queries.SearchProducts;
 using Warehouse.Domain.Exceptions;
 
 [ApiController]
@@ -102,8 +109,8 @@ public class ProductsController : ControllerBase
         using var ms = new MemoryStream();
         await file.CopyToAsync(ms);
 
-        var product = await _mediator.Send(new UploadProductImageCommand(id, fileName, filePath, ms.ToArray()));
-        return product == null ? NotFound() : Ok(new { fileName, filePath });
+        var result = await _mediator.Send(new UploadProductImageCommand(id, fileName, filePath, ms.ToArray()));
+        return result == null ? NotFound() : Ok(result);
     }
 
     [HttpDelete("{id}")]

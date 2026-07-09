@@ -1,6 +1,7 @@
 namespace Warehouse.Infrastructure.Persistence;
-
 using Warehouse.Domain.Products;
+using Warehouse.Domain.Repositories;
+
 
 public class ProductRepository : IProductRepository
 {
