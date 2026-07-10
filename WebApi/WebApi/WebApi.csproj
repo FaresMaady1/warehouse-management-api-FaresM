@@ -7,11 +7,18 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="MediatR" Version="14.2.0" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
     </ItemGroup>
 
     <ItemGroup>
       <Folder Include="wwwroot\uploads\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Warehouse.Domain\Warehouse.Domain.csproj" />
+      <ProjectReference Include="..\Warehouse.Application\Warehouse.Application.csproj" />
+      <ProjectReference Include="..\Warehouse.Infrastructure\Warehouse.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

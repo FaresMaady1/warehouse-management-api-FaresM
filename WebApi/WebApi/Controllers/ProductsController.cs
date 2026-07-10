@@ -1,105 +1,98 @@
-﻿namespace WebApi.Controllers;
+namespace WebApi.Controllers;
+
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using WebApi.Contracts;
-using WebApi.Services;
 using System.Globalization;
+using WebApi.Contracts;
+using Warehouse.Application.Commands.CreateProduct;
+using Warehouse.Application.Commands.UpdateProductQuantity;
+using Warehouse.Application.Commands.UpdateProductPrice;
+using Warehouse.Application.Commands.ArchiveProduct;
+using Warehouse.Application.Commands.AssignSupplierToProduct;
+using Warehouse.Application.Commands.UploadProductImage;
+using Warehouse.Application.Queries.GetProductById;
+using Warehouse.Application.Queries.ListProducts;
+using Warehouse.Application.Queries.SearchProducts;
+using Warehouse.Domain.Exceptions;
 
 [ApiController]
 [Route("api/products")]
 public class ProductsController : ControllerBase
 {
-    private readonly IProductService _productService;
+    private readonly IMediator _mediator;
+    public ProductsController(IMediator mediator) => _mediator = mediator;
 
-    public ProductsController(IProductService productService)
-    {
-        _productService = productService;
-    }
-
-    // endpoint 1 get all products (GET/api/products)
     [HttpGet]
-    public IActionResult GetAll([FromQuery] bool onlyAvailable = false)
-    {
-        return Ok(_productService.GetAll(onlyAvailable));
-    }
+    public async Task<IActionResult> GetAll([FromQuery] bool onlyAvailable = false)
+        => Ok(await _mediator.Send(new ListProductsQuery(onlyAvailable)));
 
-    // get by id endpoint 2 (GET/api/products/{id})
     [HttpGet("{id}")]
-    public IActionResult GetById([FromRoute] string id)
+    public async Task<IActionResult> GetById([FromRoute] string id)
     {
         if (!Guid.TryParse(id, out _))
             return BadRequest("Invalid id format.");
 
-        var product = _productService.GetById(id);
-        if (product == null)
-            return NotFound();
-
-        return Ok(product);
+        var product = await _mediator.Send(new GetProductByIdQuery(id));
+        return product == null ? NotFound() : Ok(product);
     }
 
-    // endpoint 3 search
     [HttpGet("search")]
-    public IActionResult Search([FromQuery] string? name, [FromQuery] string? supplier)
+    public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? supplier)
     {
         if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(supplier))
             return BadRequest("Provide at least one of 'name' or 'supplier'.");
 
-        var results = _productService.Search(name, supplier);
-
-        return Ok(results);
+        return Ok(await _mediator.Send(new SearchProductsQuery(name, supplier)));
     }
 
-    // 4. POST product
     [HttpPost]
-    public IActionResult Create([FromBody] CreateProductRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateProductRequest request)
     {
-        if (_productService.SkuExists(request.SKU))
-            return BadRequest($"A product with SKU '{request.SKU}' already exists.");
+        try
+        {
+            var product = await _mediator.Send(new CreateProductCommand(
+                request.Name, request.SKU, request.Description, request.Price,
+                request.QuantityInStock, request.SupplierName, request.ExpiryDate));
 
-        var product = _productService.Create(request);
-
-        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    // 5 update quantity
     [HttpPost("{id}/quantity")]
-    public IActionResult UpdateQuantity([FromRoute] string id, [FromBody] UpdateProductQuantityRequest request)
+    public async Task<IActionResult> UpdateQuantity([FromRoute] string id, [FromBody] UpdateProductQuantityRequest request)
     {
-        if (request.QuantityInStock < 0)
-            return BadRequest("Quantity cannot be negative.");
-
-        var product = _productService.GetById(id);
-        if (product == null)
-            return NotFound();
-
-        _productService.UpdateQuantity(product, request);
-
-        return Ok("Update Done");
+        try
+        {
+            var product = await _mediator.Send(new UpdateProductQuantityCommand(id, request.QuantityInStock));
+            return product == null ? NotFound() : Ok("Update Done");
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    // 6 update price
     [HttpPost("{id}/price")]
-    public IActionResult UpdatePrice([FromRoute] string id, [FromBody] UpdateProductPriceRequest request)
+    public async Task<IActionResult> UpdatePrice([FromRoute] string id, [FromBody] UpdateProductPriceRequest request)
     {
-        if (request.Price <= 0)
-            return BadRequest("Price must be greater than 0.");
-
-        var product = _productService.GetById(id);
-        if (product == null)
-            return NotFound();
-
-        _productService.UpdatePrice(product, request);
-
-        return Ok("Update done");
+        try
+        {
+            var product = await _mediator.Send(new UpdateProductPriceCommand(id, request.Price));
+            return product == null ? NotFound() : Ok("Update done");
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
-    // 7 update image
     [HttpPost("{id}/image")]
     public async Task<IActionResult> UploadImage([FromRoute] string id, IFormFile file)
     {
-        var product = _productService.GetById(id);
-        if (product == null)
-            return NotFound();
-
         if (file == null || file.Length == 0)
             return BadRequest("No file uploaded.");
 
@@ -110,31 +103,23 @@ public class ProductsController : ControllerBase
         if (file.Length > 2 * 1024 * 1024)
             return BadRequest("Max file size is 2 MB.");
 
-        var uploadsFolder = Path.Combine("wwwroot", "uploads");
-        Directory.CreateDirectory(uploadsFolder);
-
         var fileName = $"{id}{ext}";
-        var filePath = Path.Combine(uploadsFolder, fileName);
+        var filePath = Path.Combine("wwwroot", "uploads", fileName);
 
-        await _productService.SaveImageAsync(product, file, fileName, filePath);
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
 
-        return Ok(new { fileName, filePath });
+        var result = await _mediator.Send(new UploadProductImageCommand(id, fileName, filePath, ms.ToArray()));
+        return result == null ? NotFound() : Ok(result);
     }
 
-    // 8 DELETE (soft delete)
     [HttpDelete("{id}")]
-    public IActionResult Delete([FromRoute] string id)
+    public async Task<IActionResult> Delete([FromRoute] string id)
     {
-        var product = _productService.GetById(id);
-        if (product == null)
-            return NotFound();
-
-        _productService.Delete(product);
-
-        return Ok("Delete done");
+        var product = await _mediator.Send(new ArchiveProductCommand(id));
+        return product == null ? NotFound() : Ok("Delete done");
     }
 
-    // 9 get time
     [HttpGet("server-time")]
     public IActionResult GetServerTime([FromHeader(Name = "Accept-Language")] string? acceptLanguage)
     {
@@ -149,23 +134,17 @@ public class ProductsController : ControllerBase
         return Ok(new { culture, serverTime = formatted });
     }
 
-    // assign supplier
     [HttpPost("{id}/assign-supplier/{supplierId}")]
-    public IActionResult AssignSupplier([FromRoute] string id, [FromRoute] string supplierId)
+    public async Task<IActionResult> AssignSupplier([FromRoute] string id, [FromRoute] string supplierId)
     {
-        var product = _productService.GetById(id);
-        if (product == null)
-            return NotFound("Product not found.");
-
-        var supplier = _productService.GetSupplierById(supplierId);
-        if (supplier == null)
-            return NotFound("Supplier not found.");
-
-        if (product.IsArchived)
-            return BadRequest("Cannot assign a supplier to an archived product.");
-
-        _productService.AssignSupplier(product, supplier);
-
-        return Ok(product);
+        try
+        {
+            var product = await _mediator.Send(new AssignSupplierToProductCommand(id, supplierId));
+            return product == null ? NotFound() : Ok(product);
+        }
+        catch (DomainException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 }
