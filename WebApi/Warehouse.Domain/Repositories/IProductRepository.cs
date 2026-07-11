@@ -9,4 +9,5 @@ public interface IProductRepository
     List<Product> Search(string? name, string? supplier);
     bool SkuExists(string sku);
     void Add(Product product);
+    void SaveChanges();
 }
