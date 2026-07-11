@@ -19,6 +19,9 @@ public class WarehouseDbContext : DbContext
         {
             entity.HasKey(p => p.Id);
             entity.Property(p => p.Price).HasPrecision(18, 2);
+            entity.Property(p => p.ExpiryDate).HasColumnType("timestamp without time zone");
+            entity.Property(p => p.CreatedAt).HasColumnType("timestamp without time zone");
+            entity.Property(p => p.LastUpdatedAt).HasColumnType("timestamp without time zone");
             entity.HasOne<Supplier>()
                 .WithMany()
                 .HasForeignKey(p => p.SupplierId)
