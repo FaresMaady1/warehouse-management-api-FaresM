@@ -1,9 +1,11 @@
 namespace WebApi.Controllers;
 
 using MediatR;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using WebApi.Contracts;
+using WebApi.ViewModels;
 using Warehouse.Application.Commands.CreateProduct;
 using Warehouse.Application.Commands.UpdateProductQuantity;
 using Warehouse.Application.Commands.UpdateProductPrice;
@@ -20,11 +22,19 @@ using Warehouse.Domain.Exceptions;
 public class ProductsController : ControllerBase
 {
     private readonly IMediator _mediator;
-    public ProductsController(IMediator mediator) => _mediator = mediator;
+    private readonly IMapper _mapper;
+    public ProductsController(IMediator mediator, IMapper mapper)
+    {
+        _mediator = mediator;
+        _mapper = mapper;
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool onlyAvailable = false)
-        => Ok(await _mediator.Send(new ListProductsQuery(onlyAvailable)));
+    {
+        var products = await _mediator.Send(new ListProductsQuery(onlyAvailable));
+        return Ok(_mapper.Map<List<ProductViewModel>>(products));
+    }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById([FromRoute] string id)
@@ -33,7 +43,7 @@ public class ProductsController : ControllerBase
             return BadRequest("Invalid id format.");
 
         var product = await _mediator.Send(new GetProductByIdQuery(id));
-        return product == null ? NotFound() : Ok(product);
+        return product == null ? NotFound() : Ok(_mapper.Map<ProductViewModel>(product));
     }
 
     [HttpGet("search")]
@@ -42,7 +52,8 @@ public class ProductsController : ControllerBase
         if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(supplier))
             return BadRequest("Provide at least one of 'name' or 'supplier'.");
 
-        return Ok(await _mediator.Send(new SearchProductsQuery(name, supplier)));
+        var products = await _mediator.Send(new SearchProductsQuery(name, supplier));
+        return Ok(_mapper.Map<List<ProductViewModel>>(products));
     }
 
     [HttpPost]
@@ -54,7 +65,8 @@ public class ProductsController : ControllerBase
                 request.Name, request.SKU, request.Description, request.Price,
                 request.QuantityInStock, request.SupplierName, request.ExpiryDate));
 
-            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+            var viewModel = _mapper.Map<ProductViewModel>(product);
+            return CreatedAtAction(nameof(GetById), new { id = viewModel.Id }, viewModel);
         }
         catch (DomainException ex)
         {
@@ -68,7 +80,7 @@ public class ProductsController : ControllerBase
         try
         {
             var product = await _mediator.Send(new UpdateProductQuantityCommand(id, request.QuantityInStock));
-            return product == null ? NotFound() : Ok("Update Done");
+            return product == null ? NotFound() : Ok(_mapper.Map<ProductViewModel>(product));
         }
         catch (DomainException ex)
         {
@@ -82,7 +94,7 @@ public class ProductsController : ControllerBase
         try
         {
             var product = await _mediator.Send(new UpdateProductPriceCommand(id, request.Price));
-            return product == null ? NotFound() : Ok("Update done");
+            return product == null ? NotFound() : Ok(_mapper.Map<ProductViewModel>(product));
         }
         catch (DomainException ex)
         {
@@ -117,7 +129,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> Delete([FromRoute] string id)
     {
         var product = await _mediator.Send(new ArchiveProductCommand(id));
-        return product == null ? NotFound() : Ok("Delete done");
+        return product == null ? NotFound() : Ok(_mapper.Map<ProductViewModel>(product));
     }
 
     [HttpGet("server-time")]
@@ -140,7 +152,7 @@ public class ProductsController : ControllerBase
         try
         {
             var product = await _mediator.Send(new AssignSupplierToProductCommand(id, supplierId));
-            return product == null ? NotFound() : Ok(product);
+            return product == null ? NotFound() : Ok(_mapper.Map<ProductViewModel>(product));
         }
         catch (DomainException ex)
         {
