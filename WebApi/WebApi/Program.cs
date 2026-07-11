@@ -1,10 +1,12 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Warehouse.Application.Commands.CreateProduct;
 using Warehouse.Domain.Repositories;
 using Warehouse.Infrastructure.Persistence;
-
+using WebApi.DbFirst;
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddDbContext<WarehouseDbFirstContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("WarehouseDbFirst")));
 builder.Services.AddControllers();
 
 builder.Services.AddSingleton<WarehouseDbContext>();
