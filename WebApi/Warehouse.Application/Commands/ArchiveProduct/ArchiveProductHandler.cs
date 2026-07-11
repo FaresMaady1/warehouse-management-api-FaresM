@@ -14,6 +14,7 @@ public class ArchiveProductHandler : IRequestHandler<ArchiveProductCommand, Arch
         if (product == null) return Task.FromResult<ArchiveProductResponse?>(null);
 
         product.Archive();
+        _productRepository.SaveChanges();
 
         return Task.FromResult<ArchiveProductResponse?>(new ArchiveProductResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,

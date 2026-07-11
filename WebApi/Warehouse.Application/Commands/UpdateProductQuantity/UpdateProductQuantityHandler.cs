@@ -14,6 +14,7 @@ public class UpdateProductQuantityHandler : IRequestHandler<UpdateProductQuantit
         if (product == null) return Task.FromResult<UpdateProductQuantityResponse?>(null);
 
         product.UpdateQuantity(request.QuantityInStock);
+        _productRepository.SaveChanges();
 
         return Task.FromResult<UpdateProductQuantityResponse?>(new UpdateProductQuantityResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,
