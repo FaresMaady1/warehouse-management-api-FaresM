@@ -1,9 +1,19 @@
 ﻿namespace WebApi.Contracts;
 
+using System.ComponentModel.DataAnnotations;
+
 public class CreateSupplierRequest
 {
-    public string Name { get; set; }
-    public string Country { get; set; }
-    public string ContactEmail { get; set; }
-    public string PhoneNumber { get; set; }
+    [Required]
+    public string Name { get; set; } = default!;
+
+    [Required]
+    public string Country { get; set; } = default!;
+
+    [Required]
+    [EmailAddress]
+    public string ContactEmail { get; set; } = default!;
+
+    [Required]
+    public string PhoneNumber { get; set; } = default!;
 }
