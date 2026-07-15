@@ -8,8 +8,7 @@ using WebApi.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-
+builder.Services.AddControllers();    
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.SuppressModelStateInvalidFilter = true;
