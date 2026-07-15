@@ -164,3 +164,48 @@ Updating quantity to the deleted product
   to a repository or endpoint.
 - The Presentation layer is the `WebApi` project itself, not a renamed/new one — see the naming
   note under Architecture explanation above.
+## Session 04 — Databases, EF Core, & LINQ (Code First)
+
+The in-memory `WarehouseDbContext` from Session 03 is now a real EF Core context backed by
+Postgres. This was built using the Code First approach: the domain entities already existed
+from Session 03, so migrations were generated from them to create the database schema, rather
+than the other way around.
+
+### What changed and why
+
+The `Product` and `Supplier` domain entities themselves didn't need to change — the Session 03
+refactor already modeled them correctly. What changed is how they're persisted:
+
+- `WarehouseDbContext` now inherits from EF Core's `DbContext` and maps to a Postgres database
+  (`WarehouseDb`) instead of holding an in-memory `List<Product>` / `List<Supplier>`.
+- Repository interfaces (`IProductRepository`, `ISupplierRepository`) gained a `SaveChanges()`
+  method. In-memory mutations took effect immediately since everything was working off shared
+  object references; a real database needs an explicit commit, so every command handler that
+  mutates state now calls `SaveChanges()` after it.
+- Product images are now actually persisted. Session 03's `UploadProductImageHandler` wrote the
+  file to disk but never recorded it anywhere; a new `IProductImageRepository` and
+  `ProductImage` row now back that up.
+- Seed data moved from C# object initialization into an EF Core migration (`HasData`), so the
+  same 5 suppliers and 10 products from Session 02/03 are recreated automatically the first time
+  the migration runs.
+
+### AutoMapper and ViewModels
+
+Controllers used to return the Application layer's response records directly. They now map to
+`ProductViewModel` and `SupplierViewModel` via AutoMapper instead. `SupplierViewModel`
+deliberately leaves out `ContactEmail` and `PhoneNumber` — that's internal contact information
+callers of the API don't need. As a side effect, `UpdateQuantity`, `UpdatePrice`, and `Delete`
+on `/api/products`, which previously returned plain strings like `"Update Done"`, now return the
+mapped product ViewModel instead, matching the rest of the endpoints.
+
+### Notes
+
+- Domain entities (`Product`, `Supplier`) are untouched from Session 03 — this session is purely
+  a persistence-layer change.
+- Npgsql requires UTC `DateTime` values for `timestamptz` columns by default. Since this project
+  doesn't care about time zones, `ExpiryDate`, `CreatedAt`, and `LastUpdatedAt` are mapped as
+  `timestamp without time zone` instead, which accepts the `DateTime.Now` values the domain
+  layer already produces.
+- DB First was also explored on a separate branch (`session-04-database-connection-db-first`)
+  against a second, standalone database — kept isolated from the main app and not merged, per
+  the lab's instructions to only merge the Code First version.
