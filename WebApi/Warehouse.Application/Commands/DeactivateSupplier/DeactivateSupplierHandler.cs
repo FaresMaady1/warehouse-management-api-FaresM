@@ -14,7 +14,7 @@ public class DeactivateSupplierHandler : IRequestHandler<DeactivateSupplierComma
         if (supplier == null) return Task.FromResult<DeactivateSupplierResponse?>(null);
 
         supplier.Deactivate();
-
+        _supplierRepository.SaveChanges();
         return Task.FromResult<DeactivateSupplierResponse?>(new DeactivateSupplierResponse(
             supplier.Id, supplier.Name, supplier.Country, supplier.ContactEmail, supplier.PhoneNumber, supplier.IsActive));
     }

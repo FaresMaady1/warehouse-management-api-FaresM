@@ -14,6 +14,7 @@ public class UpdateProductPriceHandler : IRequestHandler<UpdateProductPriceComma
         if (product == null) return Task.FromResult<UpdateProductPriceResponse?>(null);
 
         product.UpdatePrice(request.Price);
+        _productRepository.SaveChanges();
 
         return Task.FromResult<UpdateProductPriceResponse?>(new UpdateProductPriceResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,

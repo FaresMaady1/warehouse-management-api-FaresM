@@ -19,6 +19,7 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Create
             request.Price, request.QuantityInStock, request.SupplierName, request.ExpiryDate);
 
         _productRepository.Add(product);
+        _productRepository.SaveChanges();
 
         return Task.FromResult(new CreateProductResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,

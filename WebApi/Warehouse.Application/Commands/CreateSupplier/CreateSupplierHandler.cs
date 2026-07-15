@@ -13,7 +13,7 @@ public class CreateSupplierHandler : IRequestHandler<CreateSupplierCommand, Crea
     {
         var supplier = Supplier.Create(request.Name, request.Country, request.ContactEmail, request.PhoneNumber);
         _supplierRepository.Add(supplier);
-
+        _supplierRepository.SaveChanges();
         return Task.FromResult(new CreateSupplierResponse(
             supplier.Id, supplier.Name, supplier.Country, supplier.ContactEmail, supplier.PhoneNumber, supplier.IsActive));
     }

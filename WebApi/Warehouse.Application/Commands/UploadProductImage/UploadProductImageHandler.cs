@@ -1,12 +1,19 @@
 namespace Warehouse.Application.Commands.UploadProductImage;
 
 using MediatR;
+using Warehouse.Domain.ProductImages;
 using Warehouse.Domain.Repositories;
 
 public class UploadProductImageHandler : IRequestHandler<UploadProductImageCommand, UploadProductImageResponse?>
 {
     private readonly IProductRepository _productRepository;
-    public UploadProductImageHandler(IProductRepository productRepository) => _productRepository = productRepository;
+    private readonly IProductImageRepository _productImageRepository;
+
+    public UploadProductImageHandler(IProductRepository productRepository, IProductImageRepository productImageRepository)
+    {
+        _productRepository = productRepository;
+        _productImageRepository = productImageRepository;
+    }
 
     public Task<UploadProductImageResponse?> Handle(UploadProductImageCommand request, CancellationToken cancellationToken)
     {
@@ -15,6 +22,13 @@ public class UploadProductImageHandler : IRequestHandler<UploadProductImageComma
 
         Directory.CreateDirectory(Path.GetDirectoryName(request.FilePath)!);
         File.WriteAllBytes(request.FilePath, request.Content);
+
+        if (_productImageRepository.GetByProductId(request.ProductId) == null)
+        {
+            var image = ProductImage.Create(request.ProductId, request.FileName, request.FilePath);
+            _productImageRepository.Add(image);
+            _productImageRepository.SaveChanges();
+        }
 
         return Task.FromResult<UploadProductImageResponse?>(
             new UploadProductImageResponse(request.FileName, request.FilePath));

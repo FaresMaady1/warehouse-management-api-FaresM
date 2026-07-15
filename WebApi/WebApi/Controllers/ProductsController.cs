@@ -1,9 +1,11 @@
 namespace WebApi.Controllers;
 
 using MediatR;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using WebApi.Contracts;
+using WebApi.ViewModels;
 using Warehouse.Application.Commands.CreateProduct;
 using Warehouse.Application.Commands.UpdateProductQuantity;
 using Warehouse.Application.Commands.UpdateProductPrice;
@@ -20,33 +22,44 @@ using Warehouse.Domain.Exceptions;
 public class ProductsController : ControllerBase
 {
     private readonly IMediator _mediator;
-    public ProductsController(IMediator mediator) => _mediator = mediator;
+    private readonly IMapper _mapper;
+    public ProductsController(IMediator mediator, IMapper mapper)
+    {
+        _mediator = mediator;
+        _mapper = mapper;
+    }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] bool onlyAvailable = false)
-        => Ok(await _mediator.Send(new ListProductsQuery(onlyAvailable)));
+    public async Task<ActionResult<List<ProductViewModel>>> GetAll([FromQuery] bool onlyAvailable = false)
+    {
+        var products = await _mediator.Send(new ListProductsQuery(onlyAvailable));
+        return Ok(_mapper.Map<List<ProductViewModel>>(products));
+    }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById([FromRoute] string id)
+    public async Task<ActionResult<ProductViewModel>> GetById([FromRoute] string id)
     {
         if (!Guid.TryParse(id, out _))
             return BadRequest("Invalid id format.");
 
         var product = await _mediator.Send(new GetProductByIdQuery(id));
-        return product == null ? NotFound() : Ok(product);
+        if (product == null) return NotFound();
+
+        return Ok(_mapper.Map<ProductViewModel>(product));
     }
 
     [HttpGet("search")]
-    public async Task<IActionResult> Search([FromQuery] string? name, [FromQuery] string? supplier)
+    public async Task<ActionResult<List<ProductViewModel>>> Search([FromQuery] string? name, [FromQuery] string? supplier)
     {
         if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(supplier))
             return BadRequest("Provide at least one of 'name' or 'supplier'.");
 
-        return Ok(await _mediator.Send(new SearchProductsQuery(name, supplier)));
+        var products = await _mediator.Send(new SearchProductsQuery(name, supplier));
+        return Ok(_mapper.Map<List<ProductViewModel>>(products));
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateProductRequest request)
+    public async Task<ActionResult<ProductViewModel>> Create([FromBody] CreateProductRequest request)
     {
         try
         {
@@ -54,7 +67,8 @@ public class ProductsController : ControllerBase
                 request.Name, request.SKU, request.Description, request.Price,
                 request.QuantityInStock, request.SupplierName, request.ExpiryDate));
 
-            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
+            var viewModel = _mapper.Map<ProductViewModel>(product);
+            return CreatedAtAction(nameof(GetById), new { id = viewModel.Id }, viewModel);
         }
         catch (DomainException ex)
         {
@@ -63,12 +77,14 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/quantity")]
-    public async Task<IActionResult> UpdateQuantity([FromRoute] string id, [FromBody] UpdateProductQuantityRequest request)
+    public async Task<ActionResult<ProductViewModel>> UpdateQuantity([FromRoute] string id, [FromBody] UpdateProductQuantityRequest request)
     {
         try
         {
             var product = await _mediator.Send(new UpdateProductQuantityCommand(id, request.QuantityInStock));
-            return product == null ? NotFound() : Ok("Update Done");
+            if (product == null) return NotFound();
+
+            return Ok(_mapper.Map<ProductViewModel>(product));
         }
         catch (DomainException ex)
         {
@@ -77,12 +93,14 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/price")]
-    public async Task<IActionResult> UpdatePrice([FromRoute] string id, [FromBody] UpdateProductPriceRequest request)
+    public async Task<ActionResult<ProductViewModel>> UpdatePrice([FromRoute] string id, [FromBody] UpdateProductPriceRequest request)
     {
         try
         {
             var product = await _mediator.Send(new UpdateProductPriceCommand(id, request.Price));
-            return product == null ? NotFound() : Ok("Update done");
+            if (product == null) return NotFound();
+
+            return Ok(_mapper.Map<ProductViewModel>(product));
         }
         catch (DomainException ex)
         {
@@ -91,7 +109,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/image")]
-    public async Task<IActionResult> UploadImage([FromRoute] string id, IFormFile file)
+    public async Task<ActionResult<UploadProductImageResponse>> UploadImage([FromRoute] string id, IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest("No file uploaded.");
@@ -110,14 +128,18 @@ public class ProductsController : ControllerBase
         await file.CopyToAsync(ms);
 
         var result = await _mediator.Send(new UploadProductImageCommand(id, fileName, filePath, ms.ToArray()));
-        return result == null ? NotFound() : Ok(result);
+        if (result == null) return NotFound();
+
+        return Ok(result);
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete([FromRoute] string id)
+    public async Task<ActionResult<ProductViewModel>> Delete([FromRoute] string id)
     {
         var product = await _mediator.Send(new ArchiveProductCommand(id));
-        return product == null ? NotFound() : Ok("Delete done");
+        if (product == null) return NotFound();
+
+        return Ok(_mapper.Map<ProductViewModel>(product));
     }
 
     [HttpGet("server-time")]
@@ -135,12 +157,14 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/assign-supplier/{supplierId}")]
-    public async Task<IActionResult> AssignSupplier([FromRoute] string id, [FromRoute] string supplierId)
+    public async Task<ActionResult<ProductViewModel>> AssignSupplier([FromRoute] string id, [FromRoute] string supplierId)
     {
         try
         {
             var product = await _mediator.Send(new AssignSupplierToProductCommand(id, supplierId));
-            return product == null ? NotFound() : Ok(product);
+            if (product == null) return NotFound();
+
+            return Ok(_mapper.Map<ProductViewModel>(product));
         }
         catch (DomainException ex)
         {

@@ -1,8 +1,10 @@
 namespace WebApi.Controllers;
 
 using MediatR;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Contracts;
+using WebApi.ViewModels;
 using Warehouse.Application.Commands.CreateSupplier;
 using Warehouse.Application.Commands.DeactivateSupplier;
 using Warehouse.Application.Queries.ListSuppliers;
@@ -13,32 +15,45 @@ using Warehouse.Application.Queries.GetSupplierById;
 public class SuppliersController : ControllerBase
 {
     private readonly IMediator _mediator;
-    public SuppliersController(IMediator mediator) => _mediator = mediator;
+    private readonly IMapper _mapper;
+    public SuppliersController(IMediator mediator, IMapper mapper)
+    {
+        _mediator = mediator;
+        _mapper = mapper;
+    }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
-        => Ok(await _mediator.Send(new ListSuppliersQuery()));
+    public async Task<ActionResult<List<SupplierViewModel>>> GetAll()
+    {
+        var suppliers = await _mediator.Send(new ListSuppliersQuery());
+        return Ok(_mapper.Map<List<SupplierViewModel>>(suppliers));
+    }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById([FromRoute] string id)
+    public async Task<ActionResult<SupplierViewModel>> GetById([FromRoute] string id)
     {
         var supplier = await _mediator.Send(new GetSupplierByIdQuery(id));
-        return supplier == null ? NotFound() : Ok(supplier);
+        if (supplier == null) return NotFound();
+
+        return Ok(_mapper.Map<SupplierViewModel>(supplier));
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateSupplierRequest request)
+    public async Task<ActionResult<SupplierViewModel>> Create([FromBody] CreateSupplierRequest request)
     {
         var supplier = await _mediator.Send(new CreateSupplierCommand(
             request.Name, request.Country, request.ContactEmail, request.PhoneNumber));
 
-        return CreatedAtAction(nameof(GetById), new { id = supplier.Id }, supplier);
+        var viewModel = _mapper.Map<SupplierViewModel>(supplier);
+        return CreatedAtAction(nameof(GetById), new { id = viewModel.Id }, viewModel);
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> Deactivate([FromRoute] string id)
+    public async Task<ActionResult<SupplierViewModel>> Deactivate([FromRoute] string id)
     {
         var supplier = await _mediator.Send(new DeactivateSupplierCommand(id));
-        return supplier == null ? NotFound() : Ok("Delete Done");
+        if (supplier == null) return NotFound();
+
+        return Ok(_mapper.Map<SupplierViewModel>(supplier));
     }
 }

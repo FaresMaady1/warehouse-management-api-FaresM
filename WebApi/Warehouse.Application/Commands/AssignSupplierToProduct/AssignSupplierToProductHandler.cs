@@ -23,6 +23,7 @@ public class AssignSupplierToProductHandler : IRequestHandler<AssignSupplierToPr
         if (supplier == null) return Task.FromResult<AssignSupplierToProductResponse?>(null);
 
         product.AssignSupplier(supplier);
+        _productRepository.SaveChanges();
 
         return Task.FromResult<AssignSupplierToProductResponse?>(new AssignSupplierToProductResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,
