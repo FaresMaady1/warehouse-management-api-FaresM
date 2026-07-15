@@ -209,3 +209,71 @@ mapped product ViewModel instead, matching the rest of the endpoints.
 - DB First was also explored on a separate branch (`session-04-database-connection-db-first`)
   against a second, standalone database — kept isolated from the main app and not merged, per
   the lab's instructions to only merge the Code First version.
+
+  
+## Session 05 — Hardening the API
+
+The API from Sessions 02–04 worked, but treated every request as if nothing could go wrong: no
+validation on request DTOs, and async handlers that wrapped synchronous EF Core calls instead of actually awaiting I/O.
+
+### Shared error response and custom exceptions
+
+Every error the API returns now has the same shape: an error code, a message, and a trace ID
+(`ApiErrorResponse`).
+
+Two exception types drive this:
+
+- `DomainException` (already existed since Session 03) — business rule violations. `Product`
+  and `Supplier` already threw this from their `Create`/`Update` methods; nothing changed there.
+- `NotFoundException` (new) — used where a lookup fails and there's a clear domain meaning to
+  "not found," such as a missing product in a stock adjustment.
+
+Both are mapped centrally by `ExceptionStatusMapper`: `NotFoundException` → 404,
+`DomainException` → 400, anything else → 500 with a generic "unexpected error" message.
+
+### Validation
+
+Request DTOs 
+- `CreateProductRequest` — `ExpiryDate` must be in the future.
+- `CreateStockAdjustmentRequest` — `QuantityChanged` can't be zero, and a `Reason` is required
+  when the adjustment decreases stock.
+
+### Middleware 
+
+Registration order in `Program.cs` matters: `ExceptionHandlingMiddleware` is registered
+first so it wraps everything below it. The correlation ID set earlier in the request is still there to include in the
+error response and the log entry.
+
+### New middleware
+
+| Middleware | Purpose |
+|---|---|
+| `ExceptionHandlingMiddleware` | Catches unhandled exceptions, maps them to a status code via `ExceptionStatusMapper`, logs the full exception, returns `ApiErrorResponse` |
+| `CorrelationIdMiddleware` | Reads or generates an `X-Correlation-Id`, stores it on `HttpContext.Items`, echoes it back as a response header |
+| `RequestTimingMiddleware` | Adds an `X-Response-Time` header with the request duration |
+
+
+### Async and cancellation
+
+Repositories (`IProductRepository`, `ISupplierRepository`, `IProductImageRepository`) now call
+EF Core's async methods (`ToListAsync`, `FirstOrDefaultAsync`, `SaveChangesAsync`, etc.) instead
+of wrapping synchronous calls in `Task.FromResult`. Every handler now awaits these calls and
+passes through the `CancellationToken` MediatR already provided but wasn't being used. Controller
+actions accept a `CancellationToken` parameter and forward it to `_mediator.Send`.
+
+### New endpoints
+
+| Endpoint | Notes |
+|---|---|
+| GET `/api/inventory/dashboard` | Aggregate counts (total/archived/out-of-stock/expiring-soon products, total/active suppliers). Fetches products and suppliers concurrently via `Task.WhenAll` |
+
+`POST /api/products` was reviewed rather than changed — it now benefits from the new validation
+attributes and no longer needs its own try/catch, since `DomainException` is handled centrally.
+
+### Notes
+
+- No `.Result`, `.Wait()`, `async void`, or `Thread.Sleep` were present in the codebase before
+  this session, so there was nothing to remove there — the actual async work was replacing
+  `Task.FromResult`-wrapped synchronous EF calls with real async ones.
+- `StockMovement` was modeled back in Session 03 but never had a repository or endpoint until
+  this session's `POST /api/stock-adjustments`.
