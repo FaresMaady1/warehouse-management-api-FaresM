@@ -9,21 +9,25 @@ public class ProductRepository : IProductRepository
     private readonly WarehouseDbContext _context;
     public ProductRepository(WarehouseDbContext context) => _context = context;
 
-    public List<Product> GetAll() => _context.Products.ToList();
+    public Task<List<Product>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        _context.Products.ToListAsync(cancellationToken);
 
-    public Product? GetById(string id) => _context.Products.FirstOrDefault(p => p.Id == id);
+    public Task<Product?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
+        _context.Products.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-    public List<Product> Search(string? name, string? supplier)
+    public Task<List<Product>> SearchAsync(string? name, string? supplier, CancellationToken cancellationToken = default)
     {
         return _context.Products.Where(p =>
             (string.IsNullOrWhiteSpace(name) || EF.Functions.ILike(p.Name, $"%{name}%")) &&
             (string.IsNullOrWhiteSpace(supplier) || EF.Functions.ILike(p.SupplierName, $"%{supplier}%"))
-        ).ToList();
+        ).ToListAsync(cancellationToken);
     }
 
-    public bool SkuExists(string sku) => _context.Products.Any(p => p.SKU == sku);
+    public Task<bool> SkuExistsAsync(string sku, CancellationToken cancellationToken = default) =>
+        _context.Products.AnyAsync(p => p.SKU == sku, cancellationToken);
 
     public void Add(Product product) => _context.Products.Add(product);
 
-    public void SaveChanges() => _context.SaveChanges();
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
+        _context.SaveChangesAsync(cancellationToken);
 }

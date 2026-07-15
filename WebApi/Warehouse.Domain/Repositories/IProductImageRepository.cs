@@ -4,7 +4,7 @@ using Warehouse.Domain.ProductImages;
 
 public interface IProductImageRepository
 {
-    ProductImage? GetByProductId(string productId);
+    Task<ProductImage?> GetByProductIdAsync(string productId, CancellationToken cancellationToken = default);
     void Add(ProductImage image);
-    void SaveChanges();
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

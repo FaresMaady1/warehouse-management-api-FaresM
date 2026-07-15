@@ -9,12 +9,13 @@ public class CreateSupplierHandler : IRequestHandler<CreateSupplierCommand, Crea
     private readonly ISupplierRepository _supplierRepository;
     public CreateSupplierHandler(ISupplierRepository supplierRepository) => _supplierRepository = supplierRepository;
 
-    public Task<CreateSupplierResponse> Handle(CreateSupplierCommand request, CancellationToken cancellationToken)
+    public async Task<CreateSupplierResponse> Handle(CreateSupplierCommand request, CancellationToken cancellationToken)
     {
         var supplier = Supplier.Create(request.Name, request.Country, request.ContactEmail, request.PhoneNumber);
         _supplierRepository.Add(supplier);
-        _supplierRepository.SaveChanges();
-        return Task.FromResult(new CreateSupplierResponse(
-            supplier.Id, supplier.Name, supplier.Country, supplier.ContactEmail, supplier.PhoneNumber, supplier.IsActive));
+        await _supplierRepository.SaveChangesAsync(cancellationToken);
+
+        return new CreateSupplierResponse(
+            supplier.Id, supplier.Name, supplier.Country, supplier.ContactEmail, supplier.PhoneNumber, supplier.IsActive);
     }
 }

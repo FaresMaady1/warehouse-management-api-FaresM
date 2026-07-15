@@ -8,17 +8,17 @@ public class UpdateProductPriceHandler : IRequestHandler<UpdateProductPriceComma
     private readonly IProductRepository _productRepository;
     public UpdateProductPriceHandler(IProductRepository productRepository) => _productRepository = productRepository;
 
-    public Task<UpdateProductPriceResponse?> Handle(UpdateProductPriceCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateProductPriceResponse?> Handle(UpdateProductPriceCommand request, CancellationToken cancellationToken)
     {
-        var product = _productRepository.GetById(request.ProductId);
-        if (product == null) return Task.FromResult<UpdateProductPriceResponse?>(null);
+        var product = await _productRepository.GetByIdAsync(request.ProductId, cancellationToken);
+        if (product == null) return null;
 
         product.UpdatePrice(request.Price);
-        _productRepository.SaveChanges();
+        await _productRepository.SaveChangesAsync(cancellationToken);
 
-        return Task.FromResult<UpdateProductPriceResponse?>(new UpdateProductPriceResponse(
+        return new UpdateProductPriceResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,
             product.QuantityInStock, product.SupplierName, product.SupplierId, product.ExpiryDate,
-            product.IsArchived, product.CreatedAt, product.LastUpdatedAt));
+            product.IsArchived, product.CreatedAt, product.LastUpdatedAt);
     }
 }

@@ -8,14 +8,14 @@ public class SearchProductsHandler : IRequestHandler<SearchProductsQuery, List<P
     private readonly IProductRepository _productRepository;
     public SearchProductsHandler(IProductRepository productRepository) => _productRepository = productRepository;
 
-    public Task<List<ProductResponse>> Handle(SearchProductsQuery request, CancellationToken cancellationToken)
+    public async Task<List<ProductResponse>> Handle(SearchProductsQuery request, CancellationToken cancellationToken)
     {
-        var response = _productRepository.Search(request.Name, request.Supplier)
+        var products = await _productRepository.SearchAsync(request.Name, request.Supplier, cancellationToken);
+
+        return products
             .Select(p => new ProductResponse(
                 p.Id, p.Name, p.SKU, p.Description, p.Price, p.QuantityInStock,
                 p.SupplierName, p.SupplierId, p.ExpiryDate, p.IsArchived, p.CreatedAt, p.LastUpdatedAt))
             .ToList();
-
-        return Task.FromResult(response);
     }
 }

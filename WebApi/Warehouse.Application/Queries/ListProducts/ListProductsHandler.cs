@@ -8,20 +8,18 @@ public class ListProductsHandler : IRequestHandler<ListProductsQuery, List<Produ
     private readonly IProductRepository _productRepository;
     public ListProductsHandler(IProductRepository productRepository) => _productRepository = productRepository;
 
-    public Task<List<ProductResponse>> Handle(ListProductsQuery request, CancellationToken cancellationToken)
+    public async Task<List<ProductResponse>> Handle(ListProductsQuery request, CancellationToken cancellationToken)
     {
-        var products = _productRepository.GetAll().AsEnumerable();
+        var products = (await _productRepository.GetAllAsync(cancellationToken)).AsEnumerable();
 
         if (request.OnlyAvailable)
             products = products.Where(p => p.QuantityInStock > 0 && !p.IsArchived);
 
-        var response = products
+        return products
             .OrderByDescending(p => p.CreatedAt)
             .Select(p => new ProductResponse(
                 p.Id, p.Name, p.SKU, p.Description, p.Price, p.QuantityInStock,
                 p.SupplierName, p.SupplierId, p.ExpiryDate, p.IsArchived, p.CreatedAt, p.LastUpdatedAt))
             .ToList();
-
-        return Task.FromResult(response);
     }
 }

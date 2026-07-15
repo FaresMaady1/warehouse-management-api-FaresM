@@ -8,14 +8,15 @@ public class DeactivateSupplierHandler : IRequestHandler<DeactivateSupplierComma
     private readonly ISupplierRepository _supplierRepository;
     public DeactivateSupplierHandler(ISupplierRepository supplierRepository) => _supplierRepository = supplierRepository;
 
-    public Task<DeactivateSupplierResponse?> Handle(DeactivateSupplierCommand request, CancellationToken cancellationToken)
+    public async Task<DeactivateSupplierResponse?> Handle(DeactivateSupplierCommand request, CancellationToken cancellationToken)
     {
-        var supplier = _supplierRepository.GetById(request.SupplierId);
-        if (supplier == null) return Task.FromResult<DeactivateSupplierResponse?>(null);
+        var supplier = await _supplierRepository.GetByIdAsync(request.SupplierId, cancellationToken);
+        if (supplier == null) return null;
 
         supplier.Deactivate();
-        _supplierRepository.SaveChanges();
-        return Task.FromResult<DeactivateSupplierResponse?>(new DeactivateSupplierResponse(
-            supplier.Id, supplier.Name, supplier.Country, supplier.ContactEmail, supplier.PhoneNumber, supplier.IsActive));
+        await _supplierRepository.SaveChangesAsync(cancellationToken);
+
+        return new DeactivateSupplierResponse(
+            supplier.Id, supplier.Name, supplier.Country, supplier.ContactEmail, supplier.PhoneNumber, supplier.IsActive);
     }
 }

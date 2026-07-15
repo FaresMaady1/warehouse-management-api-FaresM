@@ -4,10 +4,10 @@ using Warehouse.Domain.Products;
 
 public interface IProductRepository
 {
-    List<Product> GetAll();
-    Product? GetById(string id);
-    List<Product> Search(string? name, string? supplier);
-    bool SkuExists(string sku);
+    Task<List<Product>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<Product?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+    Task<List<Product>> SearchAsync(string? name, string? supplier, CancellationToken cancellationToken = default);
+    Task<bool> SkuExistsAsync(string sku, CancellationToken cancellationToken = default);
     void Add(Product product);
-    void SaveChanges();
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

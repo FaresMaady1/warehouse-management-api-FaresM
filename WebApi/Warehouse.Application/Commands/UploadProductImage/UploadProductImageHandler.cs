@@ -15,22 +15,21 @@ public class UploadProductImageHandler : IRequestHandler<UploadProductImageComma
         _productImageRepository = productImageRepository;
     }
 
-    public Task<UploadProductImageResponse?> Handle(UploadProductImageCommand request, CancellationToken cancellationToken)
+    public async Task<UploadProductImageResponse?> Handle(UploadProductImageCommand request, CancellationToken cancellationToken)
     {
-        var product = _productRepository.GetById(request.ProductId);
-        if (product == null) return Task.FromResult<UploadProductImageResponse?>(null);
+        var product = await _productRepository.GetByIdAsync(request.ProductId, cancellationToken);
+        if (product == null) return null;
 
         Directory.CreateDirectory(Path.GetDirectoryName(request.FilePath)!);
-        File.WriteAllBytes(request.FilePath, request.Content);
+        await File.WriteAllBytesAsync(request.FilePath, request.Content, cancellationToken);
 
-        if (_productImageRepository.GetByProductId(request.ProductId) == null)
+        if (await _productImageRepository.GetByProductIdAsync(request.ProductId, cancellationToken) == null)
         {
             var image = ProductImage.Create(request.ProductId, request.FileName, request.FilePath);
             _productImageRepository.Add(image);
-            _productImageRepository.SaveChanges();
+            await _productImageRepository.SaveChangesAsync(cancellationToken);
         }
 
-        return Task.FromResult<UploadProductImageResponse?>(
-            new UploadProductImageResponse(request.FileName, request.FilePath));
+        return new UploadProductImageResponse(request.FileName, request.FilePath);
     }
 }

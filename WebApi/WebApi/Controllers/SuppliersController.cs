@@ -23,35 +23,35 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<SupplierViewModel>>> GetAll()
+    public async Task<ActionResult<List<SupplierViewModel>>> GetAll(CancellationToken cancellationToken)
     {
-        var suppliers = await _mediator.Send(new ListSuppliersQuery());
+        var suppliers = await _mediator.Send(new ListSuppliersQuery(), cancellationToken);
         return Ok(_mapper.Map<List<SupplierViewModel>>(suppliers));
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<SupplierViewModel>> GetById([FromRoute] string id)
+    public async Task<ActionResult<SupplierViewModel>> GetById([FromRoute] string id, CancellationToken cancellationToken)
     {
-        var supplier = await _mediator.Send(new GetSupplierByIdQuery(id));
+        var supplier = await _mediator.Send(new GetSupplierByIdQuery(id), cancellationToken);
         if (supplier == null) return NotFound();
 
         return Ok(_mapper.Map<SupplierViewModel>(supplier));
     }
 
     [HttpPost]
-    public async Task<ActionResult<SupplierViewModel>> Create([FromBody] CreateSupplierRequest request)
+    public async Task<ActionResult<SupplierViewModel>> Create([FromBody] CreateSupplierRequest request, CancellationToken cancellationToken)
     {
         var supplier = await _mediator.Send(new CreateSupplierCommand(
-            request.Name, request.Country, request.ContactEmail, request.PhoneNumber));
+            request.Name, request.Country, request.ContactEmail, request.PhoneNumber), cancellationToken);
 
         var viewModel = _mapper.Map<SupplierViewModel>(supplier);
         return CreatedAtAction(nameof(GetById), new { id = viewModel.Id }, viewModel);
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult<SupplierViewModel>> Deactivate([FromRoute] string id)
+    public async Task<ActionResult<SupplierViewModel>> Deactivate([FromRoute] string id, CancellationToken cancellationToken)
     {
-        var supplier = await _mediator.Send(new DeactivateSupplierCommand(id));
+        var supplier = await _mediator.Send(new DeactivateSupplierCommand(id), cancellationToken);
         if (supplier == null) return NotFound();
 
         return Ok(_mapper.Map<SupplierViewModel>(supplier));
