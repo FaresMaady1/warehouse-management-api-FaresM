@@ -1,17 +1,20 @@
 namespace Warehouse.Application.Commands.AssignSupplierToProduct;
 
 using MediatR;
+using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
 public class AssignSupplierToProductHandler : IRequestHandler<AssignSupplierToProductCommand, AssignSupplierToProductResponse?>
 {
     private readonly IProductRepository _productRepository;
     private readonly ISupplierRepository _supplierRepository;
+    private readonly ICacheService _cache;
 
-    public AssignSupplierToProductHandler(IProductRepository productRepository, ISupplierRepository supplierRepository)
+    public AssignSupplierToProductHandler(IProductRepository productRepository, ISupplierRepository supplierRepository, ICacheService cache)
     {
         _productRepository = productRepository;
         _supplierRepository = supplierRepository;
+        _cache = cache;
     }
 
     public async Task<AssignSupplierToProductResponse?> Handle(AssignSupplierToProductCommand request, CancellationToken cancellationToken)
@@ -24,6 +27,10 @@ public class AssignSupplierToProductHandler : IRequestHandler<AssignSupplierToPr
 
         product.AssignSupplier(supplier);
         await _productRepository.SaveChangesAsync(cancellationToken);
+
+        await _cache.RemoveAsync($"products:{product.Id}", cancellationToken);
+        await _cache.RemoveAsync("products:list:True", cancellationToken);
+        await _cache.RemoveAsync("products:list:False", cancellationToken);
 
         return new AssignSupplierToProductResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,

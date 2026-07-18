@@ -1,6 +1,5 @@
 ﻿namespace Warehouse.Application.Queries.GetCacheStatistics;
 
-public class GetCacheStatisticsQuery
-{
-    
-}
+using MediatR;
+
+public record GetCacheStatisticsQuery() : IRequest<GetCacheStatisticsResponse>;

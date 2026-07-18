@@ -1,12 +1,19 @@
 namespace Warehouse.Application.Commands.UpdateProductPrice;
 
 using MediatR;
+using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
 public class UpdateProductPriceHandler : IRequestHandler<UpdateProductPriceCommand, UpdateProductPriceResponse?>
 {
     private readonly IProductRepository _productRepository;
-    public UpdateProductPriceHandler(IProductRepository productRepository) => _productRepository = productRepository;
+    private readonly ICacheService _cache;
+
+    public UpdateProductPriceHandler(IProductRepository productRepository, ICacheService cache)
+    {
+        _productRepository = productRepository;
+        _cache = cache;
+    }
 
     public async Task<UpdateProductPriceResponse?> Handle(UpdateProductPriceCommand request, CancellationToken cancellationToken)
     {
@@ -15,6 +22,10 @@ public class UpdateProductPriceHandler : IRequestHandler<UpdateProductPriceComma
 
         product.UpdatePrice(request.Price);
         await _productRepository.SaveChangesAsync(cancellationToken);
+
+        await _cache.RemoveAsync($"products:{product.Id}", cancellationToken);
+        await _cache.RemoveAsync("products:list:True", cancellationToken);
+        await _cache.RemoveAsync("products:list:False", cancellationToken);
 
         return new UpdateProductPriceResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,

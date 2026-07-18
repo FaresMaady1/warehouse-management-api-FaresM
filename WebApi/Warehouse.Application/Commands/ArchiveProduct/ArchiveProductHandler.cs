@@ -1,12 +1,22 @@
 namespace Warehouse.Application.Commands.ArchiveProduct;
 
 using MediatR;
+using Microsoft.Extensions.Logging;
+using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
 public class ArchiveProductHandler : IRequestHandler<ArchiveProductCommand, ArchiveProductResponse?>
 {
     private readonly IProductRepository _productRepository;
-    public ArchiveProductHandler(IProductRepository productRepository) => _productRepository = productRepository;
+    private readonly ICacheService _cache;
+    private readonly ILogger<ArchiveProductHandler> _logger;
+
+    public ArchiveProductHandler(IProductRepository productRepository, ICacheService cache, ILogger<ArchiveProductHandler> logger)
+    {
+        _productRepository = productRepository;
+        _cache = cache;
+        _logger = logger;
+    }
 
     public async Task<ArchiveProductResponse?> Handle(ArchiveProductCommand request, CancellationToken cancellationToken)
     {
@@ -15,6 +25,12 @@ public class ArchiveProductHandler : IRequestHandler<ArchiveProductCommand, Arch
 
         product.Archive();
         await _productRepository.SaveChangesAsync(cancellationToken);
+
+        await _cache.RemoveAsync($"products:{product.Id}", cancellationToken);
+        await _cache.RemoveAsync("products:list:True", cancellationToken);
+        await _cache.RemoveAsync("products:list:False", cancellationToken);
+
+        _logger.LogInformation("Product {ProductId} archived", product.Id);
 
         return new ArchiveProductResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,

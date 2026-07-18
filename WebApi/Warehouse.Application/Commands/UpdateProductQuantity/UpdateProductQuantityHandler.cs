@@ -1,12 +1,19 @@
 namespace Warehouse.Application.Commands.UpdateProductQuantity;
 
 using MediatR;
+using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
 public class UpdateProductQuantityHandler : IRequestHandler<UpdateProductQuantityCommand, UpdateProductQuantityResponse?>
 {
     private readonly IProductRepository _productRepository;
-    public UpdateProductQuantityHandler(IProductRepository productRepository) => _productRepository = productRepository;
+    private readonly ICacheService _cache;
+
+    public UpdateProductQuantityHandler(IProductRepository productRepository, ICacheService cache)
+    {
+        _productRepository = productRepository;
+        _cache = cache;
+    }
 
     public async Task<UpdateProductQuantityResponse?> Handle(UpdateProductQuantityCommand request, CancellationToken cancellationToken)
     {
@@ -15,6 +22,10 @@ public class UpdateProductQuantityHandler : IRequestHandler<UpdateProductQuantit
 
         product.UpdateQuantity(request.QuantityInStock);
         await _productRepository.SaveChangesAsync(cancellationToken);
+
+        await _cache.RemoveAsync($"products:{product.Id}", cancellationToken);
+        await _cache.RemoveAsync("products:list:True", cancellationToken);
+        await _cache.RemoveAsync("products:list:False", cancellationToken);
 
         return new UpdateProductQuantityResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,

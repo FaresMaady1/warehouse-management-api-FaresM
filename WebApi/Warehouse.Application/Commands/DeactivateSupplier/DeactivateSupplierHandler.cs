@@ -1,12 +1,22 @@
 namespace Warehouse.Application.Commands.DeactivateSupplier;
 
 using MediatR;
+using Microsoft.Extensions.Logging;
+using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
 public class DeactivateSupplierHandler : IRequestHandler<DeactivateSupplierCommand, DeactivateSupplierResponse?>
 {
     private readonly ISupplierRepository _supplierRepository;
-    public DeactivateSupplierHandler(ISupplierRepository supplierRepository) => _supplierRepository = supplierRepository;
+    private readonly ICacheService _cache;
+    private readonly ILogger<DeactivateSupplierHandler> _logger;
+
+    public DeactivateSupplierHandler(ISupplierRepository supplierRepository, ICacheService cache, ILogger<DeactivateSupplierHandler> logger)
+    {
+        _supplierRepository = supplierRepository;
+        _cache = cache;
+        _logger = logger;
+    }
 
     public async Task<DeactivateSupplierResponse?> Handle(DeactivateSupplierCommand request, CancellationToken cancellationToken)
     {
@@ -15,6 +25,11 @@ public class DeactivateSupplierHandler : IRequestHandler<DeactivateSupplierComma
 
         supplier.Deactivate();
         await _supplierRepository.SaveChangesAsync(cancellationToken);
+
+        await _cache.RemoveAsync("suppliers:all", cancellationToken);
+        await _cache.RemoveAsync($"suppliers:{supplier.Id}", cancellationToken);
+
+        _logger.LogInformation("Supplier {SupplierId} deactivated", supplier.Id);
 
         return new DeactivateSupplierResponse(
             supplier.Id, supplier.Name, supplier.Country, supplier.ContactEmail, supplier.PhoneNumber, supplier.IsActive);
