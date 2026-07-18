@@ -10,11 +10,22 @@ public class GetProductByIdHandlerTests
     private class FakeProductRepository : IProductRepository
     {
         private readonly List<Product> _products = new();
-        public List<Product> GetAll() => _products;
-        public Product? GetById(string id) => _products.FirstOrDefault(p => p.Id == id);
-        public List<Product> Search(string? name, string? supplier) => _products;
-        public bool SkuExists(string sku) => _products.Any(p => p.SKU == sku);
+
+        public Task<List<Product>> GetAllAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(_products);
+
+        public Task<Product?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_products.FirstOrDefault(p => p.Id == id));
+
+        public Task<List<Product>> SearchAsync(string? name, string? supplier, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_products);
+
+        public Task<bool> SkuExistsAsync(string sku, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_products.Any(p => p.SKU == sku));
+
         public void Add(Product product) => _products.Add(product);
+
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-﻿namespace WebApi.Middleware;
+﻿namespace WebApi.Errors;
 
 using Microsoft.AspNetCore.Http;
 using Warehouse.Domain.Exceptions;

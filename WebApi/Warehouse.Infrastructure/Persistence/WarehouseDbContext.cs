@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Warehouse.Domain.Products;
 using Warehouse.Domain.Suppliers;
 using Warehouse.Domain.ProductImages;
+using Warehouse.Domain.StockMovements;
 
 public class WarehouseDbContext : DbContext
 {
@@ -12,7 +13,8 @@ public class WarehouseDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
-
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Product>(entity =>
@@ -37,7 +39,14 @@ public class WarehouseDbContext : DbContext
                 .WithOne()
                 .HasForeignKey<ProductImage>(pi => pi.ProductId);
         });
-
+        modelBuilder.Entity<StockMovement>(entity =>
+        {
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.OccurredAt).HasColumnType("timestamp without time zone");
+            entity.HasOne<Product>()
+                .WithMany()
+                .HasForeignKey(m => m.ProductId);
+        });
         SeedData(modelBuilder);
     }
 

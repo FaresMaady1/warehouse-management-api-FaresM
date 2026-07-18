@@ -2,6 +2,7 @@
 
 using System.Text.Json;
 using WebApi.Contracts;
+using WebApi.Errors;
 
 public class ExceptionHandlingMiddleware
 {
