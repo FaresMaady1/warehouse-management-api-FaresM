@@ -14,20 +14,20 @@ public class AssignSupplierToProductHandler : IRequestHandler<AssignSupplierToPr
         _supplierRepository = supplierRepository;
     }
 
-    public Task<AssignSupplierToProductResponse?> Handle(AssignSupplierToProductCommand request, CancellationToken cancellationToken)
+    public async Task<AssignSupplierToProductResponse?> Handle(AssignSupplierToProductCommand request, CancellationToken cancellationToken)
     {
-        var product = _productRepository.GetById(request.ProductId);
-        if (product == null) return Task.FromResult<AssignSupplierToProductResponse?>(null);
+        var product = await _productRepository.GetByIdAsync(request.ProductId, cancellationToken);
+        if (product == null) return null;
 
-        var supplier = _supplierRepository.GetById(request.SupplierId);
-        if (supplier == null) return Task.FromResult<AssignSupplierToProductResponse?>(null);
+        var supplier = await _supplierRepository.GetByIdAsync(request.SupplierId, cancellationToken);
+        if (supplier == null) return null;
 
         product.AssignSupplier(supplier);
-        _productRepository.SaveChanges();
+        await _productRepository.SaveChangesAsync(cancellationToken);
 
-        return Task.FromResult<AssignSupplierToProductResponse?>(new AssignSupplierToProductResponse(
+        return new AssignSupplierToProductResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,
             product.QuantityInStock, product.SupplierName, product.SupplierId, product.ExpiryDate,
-            product.IsArchived, product.CreatedAt, product.LastUpdatedAt));
+            product.IsArchived, product.CreatedAt, product.LastUpdatedAt);
     }
 }

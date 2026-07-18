@@ -8,17 +8,17 @@ public class UpdateProductQuantityHandler : IRequestHandler<UpdateProductQuantit
     private readonly IProductRepository _productRepository;
     public UpdateProductQuantityHandler(IProductRepository productRepository) => _productRepository = productRepository;
 
-    public Task<UpdateProductQuantityResponse?> Handle(UpdateProductQuantityCommand request, CancellationToken cancellationToken)
+    public async Task<UpdateProductQuantityResponse?> Handle(UpdateProductQuantityCommand request, CancellationToken cancellationToken)
     {
-        var product = _productRepository.GetById(request.ProductId);
-        if (product == null) return Task.FromResult<UpdateProductQuantityResponse?>(null);
+        var product = await _productRepository.GetByIdAsync(request.ProductId, cancellationToken);
+        if (product == null) return null;
 
         product.UpdateQuantity(request.QuantityInStock);
-        _productRepository.SaveChanges();
+        await _productRepository.SaveChangesAsync(cancellationToken);
 
-        return Task.FromResult<UpdateProductQuantityResponse?>(new UpdateProductQuantityResponse(
+        return new UpdateProductQuantityResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,
             product.QuantityInStock, product.SupplierName, product.SupplierId, product.ExpiryDate,
-            product.IsArchived, product.CreatedAt, product.LastUpdatedAt));
+            product.IsArchived, product.CreatedAt, product.LastUpdatedAt);
     }
 }

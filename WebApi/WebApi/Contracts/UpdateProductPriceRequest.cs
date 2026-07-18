@@ -1,6 +1,9 @@
 ﻿namespace WebApi.Contracts;
 
+using System.ComponentModel.DataAnnotations;
+
 public class UpdateProductPriceRequest
 {
-    public decimal Price{ get; set; }
+    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than zero.")]
+    public decimal Price { get; set; }
 }

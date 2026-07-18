@@ -10,20 +10,20 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Create
     private readonly IProductRepository _productRepository;
     public CreateProductHandler(IProductRepository productRepository) => _productRepository = productRepository;
 
-    public Task<CreateProductResponse> Handle(CreateProductCommand request, CancellationToken cancellationToken)
+    public async Task<CreateProductResponse> Handle(CreateProductCommand request, CancellationToken cancellationToken)
     {
-        if (_productRepository.SkuExists(request.SKU))
+        if (await _productRepository.SkuExistsAsync(request.SKU, cancellationToken))
             throw new DomainException($"A product with SKU '{request.SKU}' already exists.");
 
         var product = Product.Create(request.Name, request.SKU, request.Description,
             request.Price, request.QuantityInStock, request.SupplierName, request.ExpiryDate);
 
         _productRepository.Add(product);
-        _productRepository.SaveChanges();
+        await _productRepository.SaveChangesAsync(cancellationToken);
 
-        return Task.FromResult(new CreateProductResponse(
+        return new CreateProductResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,
             product.QuantityInStock, product.SupplierName, product.SupplierId, product.ExpiryDate,
-            product.IsArchived, product.CreatedAt, product.LastUpdatedAt));
+            product.IsArchived, product.CreatedAt, product.LastUpdatedAt);
     }
 }

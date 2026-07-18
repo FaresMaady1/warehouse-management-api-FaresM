@@ -8,14 +8,14 @@ public class GetProductByIdHandler : IRequestHandler<GetProductByIdQuery, GetPro
     private readonly IProductRepository _productRepository;
     public GetProductByIdHandler(IProductRepository productRepository) => _productRepository = productRepository;
 
-    public Task<GetProductByIdResponse?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
+    public async Task<GetProductByIdResponse?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
-        var product = _productRepository.GetById(request.Id);
-        if (product == null) return Task.FromResult<GetProductByIdResponse?>(null);
+        var product = await _productRepository.GetByIdAsync(request.Id, cancellationToken);
+        if (product == null) return null;
 
-        return Task.FromResult<GetProductByIdResponse?>(new GetProductByIdResponse(
+        return new GetProductByIdResponse(
             product.Id, product.Name, product.SKU, product.Description, product.Price,
             product.QuantityInStock, product.SupplierName, product.SupplierId, product.ExpiryDate,
-            product.IsArchived, product.CreatedAt, product.LastUpdatedAt));
+            product.IsArchived, product.CreatedAt, product.LastUpdatedAt);
     }
 }

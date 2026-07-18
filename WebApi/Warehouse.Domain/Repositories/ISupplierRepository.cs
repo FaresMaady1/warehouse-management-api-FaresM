@@ -4,8 +4,8 @@ using Warehouse.Domain.Suppliers;
 
 public interface ISupplierRepository
 {
-    List<Supplier> GetAll();
-    Supplier? GetById(string id);
+    Task<List<Supplier>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<Supplier?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
     void Add(Supplier supplier);
-    void SaveChanges();
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

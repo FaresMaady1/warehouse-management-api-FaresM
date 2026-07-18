@@ -15,7 +15,6 @@ using Warehouse.Application.Commands.UploadProductImage;
 using Warehouse.Application.Queries.GetProductById;
 using Warehouse.Application.Queries.ListProducts;
 using Warehouse.Application.Queries.SearchProducts;
-using Warehouse.Domain.Exceptions;
 
 [ApiController]
 [Route("api/products")]
@@ -30,86 +29,65 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<ProductViewModel>>> GetAll([FromQuery] bool onlyAvailable = false)
+    public async Task<ActionResult<List<ProductViewModel>>> GetAll([FromQuery] bool onlyAvailable = false, CancellationToken cancellationToken = default)
     {
-        var products = await _mediator.Send(new ListProductsQuery(onlyAvailable));
+        var products = await _mediator.Send(new ListProductsQuery(onlyAvailable), cancellationToken);
         return Ok(_mapper.Map<List<ProductViewModel>>(products));
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ProductViewModel>> GetById([FromRoute] string id)
+    public async Task<ActionResult<ProductViewModel>> GetById([FromRoute] string id, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(id, out _))
             return BadRequest("Invalid id format.");
 
-        var product = await _mediator.Send(new GetProductByIdQuery(id));
+        var product = await _mediator.Send(new GetProductByIdQuery(id), cancellationToken);
         if (product == null) return NotFound();
 
         return Ok(_mapper.Map<ProductViewModel>(product));
     }
 
     [HttpGet("search")]
-    public async Task<ActionResult<List<ProductViewModel>>> Search([FromQuery] string? name, [FromQuery] string? supplier)
+    public async Task<ActionResult<List<ProductViewModel>>> Search([FromQuery] string? name, [FromQuery] string? supplier, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(supplier))
             return BadRequest("Provide at least one of 'name' or 'supplier'.");
 
-        var products = await _mediator.Send(new SearchProductsQuery(name, supplier));
+        var products = await _mediator.Send(new SearchProductsQuery(name, supplier), cancellationToken);
         return Ok(_mapper.Map<List<ProductViewModel>>(products));
     }
 
     [HttpPost]
-    public async Task<ActionResult<ProductViewModel>> Create([FromBody] CreateProductRequest request)
+    public async Task<ActionResult<ProductViewModel>> Create([FromBody] CreateProductRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var product = await _mediator.Send(new CreateProductCommand(
-                request.Name, request.SKU, request.Description, request.Price,
-                request.QuantityInStock, request.SupplierName, request.ExpiryDate));
+        var product = await _mediator.Send(new CreateProductCommand(
+            request.Name, request.SKU, request.Description, request.Price,
+            request.QuantityInStock, request.SupplierName, request.ExpiryDate), cancellationToken);
 
-            var viewModel = _mapper.Map<ProductViewModel>(product);
-            return CreatedAtAction(nameof(GetById), new { id = viewModel.Id }, viewModel);
-        }
-        catch (DomainException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var viewModel = _mapper.Map<ProductViewModel>(product);
+        return CreatedAtAction(nameof(GetById), new { id = viewModel.Id }, viewModel);
     }
 
     [HttpPost("{id}/quantity")]
-    public async Task<ActionResult<ProductViewModel>> UpdateQuantity([FromRoute] string id, [FromBody] UpdateProductQuantityRequest request)
+    public async Task<ActionResult<ProductViewModel>> UpdateQuantity([FromRoute] string id, [FromBody] UpdateProductQuantityRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var product = await _mediator.Send(new UpdateProductQuantityCommand(id, request.QuantityInStock));
-            if (product == null) return NotFound();
+        var product = await _mediator.Send(new UpdateProductQuantityCommand(id, request.QuantityInStock), cancellationToken);
+        if (product == null) return NotFound();
 
-            return Ok(_mapper.Map<ProductViewModel>(product));
-        }
-        catch (DomainException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        return Ok(_mapper.Map<ProductViewModel>(product));
     }
 
     [HttpPost("{id}/price")]
-    public async Task<ActionResult<ProductViewModel>> UpdatePrice([FromRoute] string id, [FromBody] UpdateProductPriceRequest request)
+    public async Task<ActionResult<ProductViewModel>> UpdatePrice([FromRoute] string id, [FromBody] UpdateProductPriceRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var product = await _mediator.Send(new UpdateProductPriceCommand(id, request.Price));
-            if (product == null) return NotFound();
+        var product = await _mediator.Send(new UpdateProductPriceCommand(id, request.Price), cancellationToken);
+        if (product == null) return NotFound();
 
-            return Ok(_mapper.Map<ProductViewModel>(product));
-        }
-        catch (DomainException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        return Ok(_mapper.Map<ProductViewModel>(product));
     }
 
     [HttpPost("{id}/image")]
-    public async Task<ActionResult<UploadProductImageResponse>> UploadImage([FromRoute] string id, IFormFile file)
+    public async Task<ActionResult<UploadProductImageResponse>> UploadImage([FromRoute] string id, IFormFile file, CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
             return BadRequest("No file uploaded.");
@@ -125,18 +103,18 @@ public class ProductsController : ControllerBase
         var filePath = Path.Combine("wwwroot", "uploads", fileName);
 
         using var ms = new MemoryStream();
-        await file.CopyToAsync(ms);
+        await file.CopyToAsync(ms, cancellationToken);
 
-        var result = await _mediator.Send(new UploadProductImageCommand(id, fileName, filePath, ms.ToArray()));
+        var result = await _mediator.Send(new UploadProductImageCommand(id, fileName, filePath, ms.ToArray()), cancellationToken);
         if (result == null) return NotFound();
 
         return Ok(result);
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult<ProductViewModel>> Delete([FromRoute] string id)
+    public async Task<ActionResult<ProductViewModel>> Delete([FromRoute] string id, CancellationToken cancellationToken)
     {
-        var product = await _mediator.Send(new ArchiveProductCommand(id));
+        var product = await _mediator.Send(new ArchiveProductCommand(id), cancellationToken);
         if (product == null) return NotFound();
 
         return Ok(_mapper.Map<ProductViewModel>(product));
@@ -157,18 +135,11 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/assign-supplier/{supplierId}")]
-    public async Task<ActionResult<ProductViewModel>> AssignSupplier([FromRoute] string id, [FromRoute] string supplierId)
+    public async Task<ActionResult<ProductViewModel>> AssignSupplier([FromRoute] string id, [FromRoute] string supplierId, CancellationToken cancellationToken)
     {
-        try
-        {
-            var product = await _mediator.Send(new AssignSupplierToProductCommand(id, supplierId));
-            if (product == null) return NotFound();
+        var product = await _mediator.Send(new AssignSupplierToProductCommand(id, supplierId), cancellationToken);
+        if (product == null) return NotFound();
 
-            return Ok(_mapper.Map<ProductViewModel>(product));
-        }
-        catch (DomainException ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        return Ok(_mapper.Map<ProductViewModel>(product));
     }
 }
