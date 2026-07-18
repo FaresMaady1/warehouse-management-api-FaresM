@@ -20,7 +20,7 @@ builder.Services.AddDbContext<WarehouseDbContext>(options =>
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<IProductImageRepository, ProductImageRepository>();
-
+builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateProductCommand).Assembly));
 builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);

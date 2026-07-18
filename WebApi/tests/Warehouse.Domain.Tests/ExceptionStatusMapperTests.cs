@@ -2,6 +2,7 @@
 
 using Warehouse.Domain.Exceptions;
 using WebApi.Middleware;
+using WebApi.Errors;
 using Xunit;
 
 public class ExceptionStatusMapperTests
