@@ -108,3 +108,41 @@ Data resets on every restart but always seeds with these fixed GUIDs, so you can
 | `59259ca4-3749-44be-8455-ce4392577fc1` | Orange Juice | BEV-001 |
 | `f21a8cb4-5565-474e-8ceb-dd1a123ed6c0` | Pasta | GRAIN-002 |
 | `0d18b21e-20cf-4b83-9424-9c2932ad5787` | Green Tea | BEV-002 |
+
+## Latest App Features Screenshots
+
+### Localization
+
+<img width="1480" height="796" alt="image" src="https://github.com/user-attachments/assets/fd550e04-8709-4c47-8331-2f0a1ebf24a8" />
+<img width="1335" height="758" alt="image" src="https://github.com/user-attachments/assets/36435948-443c-46eb-9002-7f5ddde06b0d" />
+
+### Structured Logging in log file content
+
+<img width="1255" height="301" alt="image" src="https://github.com/user-attachments/assets/0976d08f-3f5c-4e04-a95a-c34dfe6ae39e" />
+
+### Cache Statistics 
+
+<img width="1760" height="712" alt="image" src="https://github.com/user-attachments/assets/771d9f14-8c68-4633-95d6-693ae36fcf18" />
+
+2 misses contribute in 2 new cache entries
+<img width="431" height="185" alt="image" src="https://github.com/user-attachments/assets/cd332ff5-a779-46e5-bdce-d1f007a68ef0" />
+
+
+### Health Checks
+
+Normal
+<img width="1904" height="403" alt="image" src="https://github.com/user-attachments/assets/2a2efcf9-8ab8-433e-9151-16ed3f85025b" />
+
+Redis down with retry
+<img width="1894" height="392" alt="image" src="https://github.com/user-attachments/assets/7913db9c-d5e8-49e3-8df8-f4cb0fac8699" />
+
+### Hangfire (check expiration date triggered manually) with auto archive
+
+<img width="1854" height="916" alt="image" src="https://github.com/user-attachments/assets/26c800f1-79ac-4b07-8bbb-e6c303679b04" />
+
+Auto Archived the product after the hangfire trigger
+<img width="944" height="422" alt="image" src="https://github.com/user-attachments/assets/f1e995ab-4b4b-4769-976f-f2d4c0fc432f" />
+
+### Slow request log warnning (threshold = 500 ms)
+
+<img width="830" height="118" alt="image" src="https://github.com/user-attachments/assets/694fa663-63f5-49ba-9898-171df2f4ee9b" />
