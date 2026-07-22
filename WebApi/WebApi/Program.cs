@@ -1,22 +1,33 @@
 using System.Globalization;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using HealthChecks.UI.Client;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Localization;
+using Microsoft.IdentityModel.Tokens;
+using Minio;
 using Serilog;
 using StackExchange.Redis;
 using Warehouse.Application.Commands.CreateProduct;
 using Warehouse.Application.Jobs;
 using Warehouse.Domain.Caching;
+using Warehouse.Domain.Identity;
 using Warehouse.Domain.Repositories;
+using Warehouse.Domain.Storage;
 using Warehouse.Infrastructure.Caching;
+using Warehouse.Infrastructure.Identity;
 using Warehouse.Infrastructure.Persistence;
+using Warehouse.Infrastructure.Storage;
 using WebApi.HealthChecks;
 using WebApi.Middleware;
 using WebApi.Swagger;
@@ -40,7 +51,13 @@ try
 
     builder.Host.UseSerilog();
 
-    builder.Services.AddControllers();
+    // Any authenticated user by default; write endpoints add [Authorize(Roles = "admin")] on top.
+    builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add(new AuthorizeFilter(new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build()));
+    });
     builder.Services.Configure<ApiBehaviorOptions>(options =>
     {
         options.SuppressModelStateInvalidFilter = true;
@@ -53,9 +70,58 @@ try
     builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
     builder.Services.AddScoped<IProductImageRepository, ProductImageRepository>();
     builder.Services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+    builder.Services.AddScoped<ISupplierDocumentRepository, SupplierDocumentRepository>();
 
     builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateProductCommand).Assembly));
     builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
+
+    // Firebase Authentication
+    var firebaseProjectId = builder.Configuration["Firebase:ProjectId"]!;
+    var firebaseServiceAccountPath = builder.Configuration["Firebase:ServiceAccountKeyPath"]!;
+
+    FirebaseApp.Create(new AppOptions
+    {
+        Credential = GoogleCredential.FromFile(firebaseServiceAccountPath)
+    });
+
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.MapInboundClaims = false; // keep "sub" as-is instead of remapping to a claim URI
+            options.Authority = $"https://securetoken.google.com/{firebaseProjectId}";
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = $"https://securetoken.google.com/{firebaseProjectId}",
+                ValidateAudience = true,
+                ValidAudience = firebaseProjectId,
+                ValidateLifetime = true,
+                RoleClaimType = "role"
+            };
+        });
+
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
+    });
+
+    builder.Services.AddScoped<IIdentityService, FirebaseIdentityService>();
+
+    // MinIO object storage
+    var minioEndpoint = builder.Configuration["Minio:Endpoint"]!;
+    var minioAccessKey = builder.Configuration["Minio:AccessKey"]!;
+    var minioSecretKey = builder.Configuration["Minio:SecretKey"]!;
+    var minioUseSsl = builder.Configuration.GetValue<bool>("Minio:UseSSL");
+    var minioBucketName = builder.Configuration["Minio:BucketName"]!;
+
+    builder.Services.AddSingleton<IMinioClient>(_ => new MinioClient()
+        .WithEndpoint(minioEndpoint)
+        .WithCredentials(minioAccessKey, minioSecretKey)
+        .WithSSL(minioUseSsl)
+        .Build());
+
+    builder.Services.AddScoped<IFileStorageService>(sp =>
+        new MinioFileStorageService(sp.GetRequiredService<IMinioClient>(), minioBucketName));
 
     // Localization
     builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
@@ -68,9 +134,6 @@ try
             .AddSupportedUICultures(supportedCultures);
     });
 
-    // Explicit base-name lookup — bypasses the IStringLocalizer<T> namespace convention
-    // entirely, so the physical resx path (Resources/SharedResources*.resx) is matched
-    // deterministically regardless of where the marker class lives.
     builder.Services.AddSingleton<IStringLocalizer>(sp =>
     {
         var factory = sp.GetRequiredService<IStringLocalizerFactory>();
@@ -116,6 +179,14 @@ try
 
     var app = builder.Build();
 
+    using (var scope = app.Services.CreateScope())
+    {
+        var minio = scope.ServiceProvider.GetRequiredService<IMinioClient>();
+        var bucketExists = await minio.BucketExistsAsync(new Minio.DataModel.Args.BucketExistsArgs().WithBucket(minioBucketName));
+        if (!bucketExists)
+            await minio.MakeBucketAsync(new Minio.DataModel.Args.MakeBucketArgs().WithBucket(minioBucketName));
+    }
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
@@ -127,6 +198,9 @@ try
     app.UseMiddleware<RequestTimingMiddleware>();
 
     app.UseRequestLocalization();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     app.UseHangfireDashboard("/hangfire");
 
