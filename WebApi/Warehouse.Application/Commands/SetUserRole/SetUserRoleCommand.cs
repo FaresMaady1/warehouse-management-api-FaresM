@@ -1,6 +1,5 @@
 ﻿namespace Warehouse.Application.Commands.SetUserRole;
 
-public class SetUserRoleCommand
-{
-    
-}
+using MediatR;
+
+public record SetUserRoleCommand(string Uid, string Role) : IRequest;
