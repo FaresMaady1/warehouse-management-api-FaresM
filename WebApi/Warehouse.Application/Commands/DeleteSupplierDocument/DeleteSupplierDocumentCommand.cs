@@ -1,6 +1,5 @@
 ﻿namespace Warehouse.Application.Commands.DeleteSupplierDocument;
 
-public class DeleteSupplierDocumentCommand
-{
-    
-}
+using MediatR;
+
+public record DeleteSupplierDocumentCommand(string DocumentId) : IRequest<bool>;

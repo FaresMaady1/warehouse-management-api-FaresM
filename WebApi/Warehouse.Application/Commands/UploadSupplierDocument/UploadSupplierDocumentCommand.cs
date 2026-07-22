@@ -1,6 +1,5 @@
 ﻿namespace Warehouse.Application.Commands.UploadSupplierDocument;
 
-public class UploadSupplierDocumentCommand
-{
-    
-}
+using MediatR;
+
+public record UploadSupplierDocumentCommand(string SupplierId, string FileName, string ContentType, long SizeBytes, Stream Content) : IRequest<UploadSupplierDocumentResponse?>;

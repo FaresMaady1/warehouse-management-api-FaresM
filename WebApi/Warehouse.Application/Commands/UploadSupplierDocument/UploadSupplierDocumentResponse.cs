@@ -1,6 +1,3 @@
 ﻿namespace Warehouse.Application.Commands.UploadSupplierDocument;
 
-public class UploadSupplierDocumentResponse
-{
-    
-}
+public record UploadSupplierDocumentResponse(string Id, string SupplierId, string FileName, DateTime UploadedAt);

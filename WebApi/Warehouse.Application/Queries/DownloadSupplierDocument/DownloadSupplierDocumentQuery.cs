@@ -1,6 +1,5 @@
 ﻿namespace Warehouse.Application.Queries.DownloadSupplierDocument;
 
-public class DownloadSupplierDocumentQuery
-{
-    
-}
+using MediatR;
+
+public record DownloadSupplierDocumentQuery(string DocumentId) : IRequest<DownloadSupplierDocumentResponse?>;

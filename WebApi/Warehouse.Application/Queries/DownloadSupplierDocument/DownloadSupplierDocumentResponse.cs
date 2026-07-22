@@ -1,6 +1,3 @@
 ﻿namespace Warehouse.Application.Queries.DownloadSupplierDocument;
 
-public class DownloadSupplierDocumentResponse
-{
-    
-}
+public record DownloadSupplierDocumentResponse(string FileName, string ContentType, Stream Content);
