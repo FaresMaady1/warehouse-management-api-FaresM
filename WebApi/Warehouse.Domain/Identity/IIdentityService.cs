@@ -1,6 +1,6 @@
 ﻿namespace Warehouse.Domain.Identity;
 
-public class IIdentityService
+public interface IIdentityService
 {
-    
+    Task SetUserRoleAsync(string uid, string role, CancellationToken cancellationToken = default);
 }
