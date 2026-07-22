@@ -14,6 +14,8 @@ public class ProductImageRepository : IProductImageRepository
 
     public void Add(ProductImage image) => _context.ProductImages.Add(image);
 
+    public void Remove(ProductImage image) => _context.ProductImages.Remove(image);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         _context.SaveChangesAsync(cancellationToken);
 }

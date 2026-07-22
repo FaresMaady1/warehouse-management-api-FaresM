@@ -1,6 +1,5 @@
 ﻿namespace Warehouse.Application.Commands.DeleteProductImage;
 
-public class DeleteProductImageCommand
-{
-    
-}
+using MediatR;
+
+public record DeleteProductImageCommand(string ProductId) : IRequest<bool>;

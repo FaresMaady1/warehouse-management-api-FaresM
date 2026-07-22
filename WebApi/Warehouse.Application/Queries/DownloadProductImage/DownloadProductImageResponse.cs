@@ -1,6 +1,3 @@
 ﻿namespace Warehouse.Application.Queries.DownloadProductImage;
 
-public class DownloadProductImageResponse
-{
-    
-}
+public record DownloadProductImageResponse(string FileName, string ContentType, Stream Content);

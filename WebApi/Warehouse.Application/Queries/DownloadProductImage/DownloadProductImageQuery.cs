@@ -1,6 +1,5 @@
 ﻿namespace Warehouse.Application.Queries.DownloadProductImage;
 
-public class DownloadProductImageQuery
-{
-    
-}
+using MediatR;
+
+public record DownloadProductImageQuery(string ProductId) : IRequest<DownloadProductImageResponse?>;
