@@ -1,6 +1,7 @@
 namespace Warehouse.Application.Queries.ListSuppliers;
 
 using MediatR;
+using Warehouse.Application.Caching;
 using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
@@ -17,7 +18,7 @@ public class ListSuppliersHandler : IRequestHandler<ListSuppliersQuery, List<Sup
 
     public async Task<List<SupplierResponse>> Handle(ListSuppliersQuery request, CancellationToken cancellationToken)
     {
-        var cached = await _cache.GetAsync<List<SupplierResponse>>("suppliers:all", cancellationToken);
+        var cached = await _cache.GetAsync<List<SupplierResponse>>(CacheKeys.SuppliersAll, cancellationToken);
         if (cached != null) return cached;
 
         var suppliers = await _supplierRepository.GetAllAsync(cancellationToken);
@@ -26,7 +27,7 @@ public class ListSuppliersHandler : IRequestHandler<ListSuppliersQuery, List<Sup
             .Select(s => new SupplierResponse(s.Id, s.Name, s.Country, s.ContactEmail, s.PhoneNumber, s.IsActive))
             .ToList();
 
-        await _cache.SetAsync("suppliers:all", result, TimeSpan.FromMinutes(5), cancellationToken);
+        await _cache.SetAsync(CacheKeys.SuppliersAll, result, TimeSpan.FromMinutes(5), cancellationToken);
         return result;
     }
 }

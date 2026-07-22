@@ -1,16 +1,16 @@
 ﻿namespace WebApi.HealthChecks;
 
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using StackExchange.Redis;
 
 public class RedisRetryHealthCheck : IHealthCheck
 {
     private const int MaxRetries = 3;
+    private const string ProbeKey = "healthcheck:redis:probe";
 
-    private readonly IConnectionMultiplexer _connectionMultiplexer;
+    private readonly IDistributedCache _cache;
 
-    public RedisRetryHealthCheck(IConnectionMultiplexer connectionMultiplexer) =>
-        _connectionMultiplexer = connectionMultiplexer;
+    public RedisRetryHealthCheck(IDistributedCache cache) => _cache = cache;
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
@@ -18,9 +18,8 @@ public class RedisRetryHealthCheck : IHealthCheck
         {
             try
             {
-                var db = _connectionMultiplexer.GetDatabase();
-                var latency = await db.PingAsync();
-                return HealthCheckResult.Healthy($"Redis responded in {latency.TotalMilliseconds}ms (attempt {attempt}/{MaxRetries}).");
+                await _cache.SetStringAsync(ProbeKey, DateTime.UtcNow.ToString("O"), cancellationToken);
+                return HealthCheckResult.Healthy($"Redis responded on attempt {attempt}/{MaxRetries}.");
             }
             catch (Exception) when (attempt < MaxRetries)
             {

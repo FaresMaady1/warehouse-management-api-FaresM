@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Localization;
 using Serilog;
-using Serilog.Events;
 using StackExchange.Redis;
 using Warehouse.Application.Commands.CreateProduct;
 using Warehouse.Application.Jobs;
@@ -22,9 +21,14 @@ using WebApi.HealthChecks;
 using WebApi.Middleware;
 using WebApi.Swagger;
 
+var bootstrapConfiguration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", optional: true)
+    .Build();
+
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .ReadFrom.Configuration(bootstrapConfiguration)
     .Enrich.FromLogContext()
     .WriteTo.Console()
     .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
@@ -142,7 +146,7 @@ try
 
     RecurringJob.AddOrUpdate<ProductExpiryCheckJob>(
         "product-expiry-check",
-        job => job.RunAsync(),
+        job => job.RunAsync(CancellationToken.None),
         Cron.Daily);
 
     app.Run();

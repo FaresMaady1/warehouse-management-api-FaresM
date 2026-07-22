@@ -2,6 +2,7 @@ namespace Warehouse.Application.Commands.CreateProduct;
 
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Warehouse.Application.Caching;
 using Warehouse.Domain.Caching;
 using Warehouse.Domain.Exceptions;
 using Warehouse.Domain.Products;
@@ -31,8 +32,8 @@ public class CreateProductHandler : IRequestHandler<CreateProductCommand, Create
         _productRepository.Add(product);
         await _productRepository.SaveChangesAsync(cancellationToken);
 
-        await _cache.RemoveAsync("products:list:True", cancellationToken);
-        await _cache.RemoveAsync("products:list:False", cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ProductList(true), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ProductList(false), cancellationToken);
 
         _logger.LogInformation("Product {ProductId} ({Sku}) created", product.Id, product.SKU);
 

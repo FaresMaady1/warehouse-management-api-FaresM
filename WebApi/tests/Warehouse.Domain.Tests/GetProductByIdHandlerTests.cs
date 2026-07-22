@@ -15,6 +15,9 @@ public class GetProductByIdHandlerTests
         public Task<List<Product>> GetAllAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(_products);
 
+        public Task<List<Product>> GetActiveAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(_products.Where(p => !p.IsArchived).ToList());
+
         public Task<Product?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
             Task.FromResult(_products.FirstOrDefault(p => p.Id == id));
 

@@ -1,6 +1,7 @@
 namespace Warehouse.Application.Queries.GetSupplierById;
 
 using MediatR;
+using Warehouse.Application.Caching;
 using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
@@ -17,7 +18,7 @@ public class GetSupplierByIdHandler : IRequestHandler<GetSupplierByIdQuery, GetS
 
     public async Task<GetSupplierByIdResponse?> Handle(GetSupplierByIdQuery request, CancellationToken cancellationToken)
     {
-        var cacheKey = $"suppliers:{request.Id}";
+        var cacheKey = CacheKeys.Supplier(request.Id);
         var cached = await _cache.GetAsync<GetSupplierByIdResponse>(cacheKey, cancellationToken);
         if (cached != null) return cached;
 

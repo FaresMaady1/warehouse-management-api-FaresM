@@ -1,6 +1,7 @@
 namespace Warehouse.Application.Queries.GetProductById;
 
 using MediatR;
+using Warehouse.Application.Caching;
 using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
@@ -17,7 +18,7 @@ public class GetProductByIdHandler : IRequestHandler<GetProductByIdQuery, GetPro
 
     public async Task<GetProductByIdResponse?> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
     {
-        var cacheKey = $"products:{request.Id}";
+        var cacheKey = CacheKeys.Product(request.Id);
         var cached = await _cache.GetAsync<GetProductByIdResponse>(cacheKey, cancellationToken);
         if (cached != null) return cached;
 

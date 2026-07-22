@@ -1,6 +1,7 @@
 ﻿namespace Warehouse.Application.Jobs;
 
 using Microsoft.Extensions.Logging;
+using Warehouse.Application.Caching;
 using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
@@ -17,14 +18,12 @@ public class ProductExpiryCheckJob
         _logger = logger;
     }
 
-    public async Task RunAsync()
+    public async Task RunAsync(CancellationToken cancellationToken)
     {
-        var products = await _productRepository.GetAllAsync();
+        var active = await _productRepository.GetActiveAsync(cancellationToken);
         var now = DateTime.Now;
         var expiringSoonCutoff = now.AddDays(30);
         var archiveCutoff = now.AddDays(-7);
-
-        var active = products.Where(p => !p.IsArchived).ToList();
 
         var expired = active.Where(p => p.ExpiryDate <= now).ToList();
         var expiringSoon = active.Where(p => p.ExpiryDate > now && p.ExpiryDate <= expiringSoonCutoff).ToList();
@@ -46,11 +45,11 @@ public class ProductExpiryCheckJob
         {
             product.Archive();
             _logger.LogInformation("Archived expired product: {ProductName} ({ProductId}), expired {ExpiryDate}", product.Name, product.Id, product.ExpiryDate);
-            await _cache.RemoveAsync($"products:{product.Id}");
+            await _cache.RemoveAsync(CacheKeys.Product(product.Id), cancellationToken);
         }
 
-        await _productRepository.SaveChangesAsync();
-        await _cache.RemoveAsync("products:list:True");
-        await _cache.RemoveAsync("products:list:False");
+        await _productRepository.SaveChangesAsync(cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ProductList(true), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ProductList(false), cancellationToken);
     }
 }

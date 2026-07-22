@@ -2,6 +2,7 @@ namespace Warehouse.Application.Commands.DeactivateSupplier;
 
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Warehouse.Application.Caching;
 using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
@@ -26,8 +27,8 @@ public class DeactivateSupplierHandler : IRequestHandler<DeactivateSupplierComma
         supplier.Deactivate();
         await _supplierRepository.SaveChangesAsync(cancellationToken);
 
-        await _cache.RemoveAsync("suppliers:all", cancellationToken);
-        await _cache.RemoveAsync($"suppliers:{supplier.Id}", cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.SuppliersAll, cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.Supplier(supplier.Id), cancellationToken);
 
         _logger.LogInformation("Supplier {SupplierId} deactivated", supplier.Id);
 

@@ -2,6 +2,7 @@
 
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Warehouse.Application.Caching;
 using Warehouse.Domain.Caching;
 using Warehouse.Domain.Exceptions;
 using Warehouse.Domain.Repositories;
@@ -40,9 +41,9 @@ public class CreateStockAdjustmentHandler : IRequestHandler<CreateStockAdjustmen
         await _productRepository.SaveChangesAsync(cancellationToken);
         await _stockMovementRepository.SaveChangesAsync(cancellationToken);
 
-        await _cache.RemoveAsync($"products:{product.Id}", cancellationToken);
-        await _cache.RemoveAsync("products:list:True", cancellationToken);
-        await _cache.RemoveAsync("products:list:False", cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.Product(product.Id), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ProductList(true), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.ProductList(false), cancellationToken);
 
         _logger.LogInformation(
             "Stock adjustment for product {ProductId}: {QuantityChanged} ({Reason}). New quantity: {NewQuantity}",

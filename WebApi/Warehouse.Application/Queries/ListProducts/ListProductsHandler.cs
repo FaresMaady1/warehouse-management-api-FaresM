@@ -1,6 +1,7 @@
 namespace Warehouse.Application.Queries.ListProducts;
 
 using MediatR;
+using Warehouse.Application.Caching;
 using Warehouse.Domain.Caching;
 using Warehouse.Domain.Repositories;
 
@@ -17,7 +18,7 @@ public class ListProductsHandler : IRequestHandler<ListProductsQuery, List<Produ
 
     public async Task<List<ProductResponse>> Handle(ListProductsQuery request, CancellationToken cancellationToken)
     {
-        var cacheKey = $"products:list:{request.OnlyAvailable}";
+        var cacheKey = CacheKeys.ProductList(request.OnlyAvailable);
         var cached = await _cache.GetAsync<List<ProductResponse>>(cacheKey, cancellationToken);
         if (cached != null) return cached;
 
