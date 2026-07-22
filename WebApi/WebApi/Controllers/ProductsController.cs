@@ -3,6 +3,7 @@ namespace WebApi.Controllers;
 using MediatR;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using System.Globalization;
 using WebApi.Contracts;
 using WebApi.ViewModels;
@@ -22,10 +23,13 @@ public class ProductsController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IMapper _mapper;
-    public ProductsController(IMediator mediator, IMapper mapper)
+    private readonly IStringLocalizer _localizer;
+
+    public ProductsController(IMediator mediator, IMapper mapper, IStringLocalizer localizer)
     {
         _mediator = mediator;
         _mapper = mapper;
+        _localizer = localizer;
     }
 
     [HttpGet]
@@ -39,10 +43,10 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ProductViewModel>> GetById([FromRoute] string id, CancellationToken cancellationToken)
     {
         if (!Guid.TryParse(id, out _))
-            return BadRequest("Invalid id format.");
+            return BadRequest(_localizer["InvalidIdFormat"].Value);
 
         var product = await _mediator.Send(new GetProductByIdQuery(id), cancellationToken);
-        if (product == null) return NotFound();
+        if (product == null) return NotFound(_localizer["ProductNotFound"].Value);
 
         return Ok(_mapper.Map<ProductViewModel>(product));
     }
@@ -72,7 +76,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ProductViewModel>> UpdateQuantity([FromRoute] string id, [FromBody] UpdateProductQuantityRequest request, CancellationToken cancellationToken)
     {
         var product = await _mediator.Send(new UpdateProductQuantityCommand(id, request.QuantityInStock), cancellationToken);
-        if (product == null) return NotFound();
+        if (product == null) return NotFound(_localizer["ProductNotFound"].Value);
 
         return Ok(_mapper.Map<ProductViewModel>(product));
     }
@@ -81,7 +85,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ProductViewModel>> UpdatePrice([FromRoute] string id, [FromBody] UpdateProductPriceRequest request, CancellationToken cancellationToken)
     {
         var product = await _mediator.Send(new UpdateProductPriceCommand(id, request.Price), cancellationToken);
-        if (product == null) return NotFound();
+        if (product == null) return NotFound(_localizer["ProductNotFound"].Value);
 
         return Ok(_mapper.Map<ProductViewModel>(product));
     }
@@ -106,7 +110,7 @@ public class ProductsController : ControllerBase
         await file.CopyToAsync(ms, cancellationToken);
 
         var result = await _mediator.Send(new UploadProductImageCommand(id, fileName, filePath, ms.ToArray()), cancellationToken);
-        if (result == null) return NotFound();
+        if (result == null) return NotFound(_localizer["ProductNotFound"].Value);
 
         return Ok(result);
     }
@@ -115,7 +119,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ProductViewModel>> Delete([FromRoute] string id, CancellationToken cancellationToken)
     {
         var product = await _mediator.Send(new ArchiveProductCommand(id), cancellationToken);
-        if (product == null) return NotFound();
+        if (product == null) return NotFound(_localizer["ProductNotFound"].Value);
 
         return Ok(_mapper.Map<ProductViewModel>(product));
     }
@@ -125,8 +129,8 @@ public class ProductsController : ControllerBase
     {
         string culture = acceptLanguage switch
         {
-            "fr-FR" => "fr-FR",
-            "ar-LB" => "ar-LB",
+            "fr" => "fr-FR",
+            "ar" => "ar-LB",
             _ => "en-US"
         };
 
@@ -138,7 +142,7 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ProductViewModel>> AssignSupplier([FromRoute] string id, [FromRoute] string supplierId, CancellationToken cancellationToken)
     {
         var product = await _mediator.Send(new AssignSupplierToProductCommand(id, supplierId), cancellationToken);
-        if (product == null) return NotFound();
+        if (product == null) return NotFound(_localizer["ProductNotFound"].Value);
 
         return Ok(_mapper.Map<ProductViewModel>(product));
     }

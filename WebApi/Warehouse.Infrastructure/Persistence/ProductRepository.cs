@@ -12,6 +12,9 @@ public class ProductRepository : IProductRepository
     public Task<List<Product>> GetAllAsync(CancellationToken cancellationToken = default) =>
         _context.Products.ToListAsync(cancellationToken);
 
+    public Task<List<Product>> GetActiveAsync(CancellationToken cancellationToken = default) =>
+        _context.Products.Where(p => !p.IsArchived).ToListAsync(cancellationToken);
+
     public Task<Product?> GetByIdAsync(string id, CancellationToken cancellationToken = default) =>
         _context.Products.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 

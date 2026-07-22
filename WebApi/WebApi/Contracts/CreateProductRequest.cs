@@ -1,6 +1,7 @@
 ﻿namespace WebApi.Contracts;
 
 using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Localization;
 
 public class CreateProductRequest : IValidatableObject
 {
@@ -26,6 +27,10 @@ public class CreateProductRequest : IValidatableObject
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (ExpiryDate <= DateTime.Now)
-            yield return new ValidationResult("ExpiryDate must be in the future.", new[] { nameof(ExpiryDate) });
+        {
+            var localizer = validationContext.GetService(typeof(IStringLocalizer)) as IStringLocalizer;
+            var message = localizer?["ExpiryDateMustBeFuture"].Value ?? "ExpiryDate must be in the future.";
+            yield return new ValidationResult(message, new[] { nameof(ExpiryDate) });
+        }
     }
 }
