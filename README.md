@@ -79,6 +79,40 @@ WebApi                    -> HTTP entry point (controllers, DI/startup, request 
 5. Self-identified: diagnosed and resolved a Redis connection failure caused by a host port
    mapping conflict (see PR description for details)
 
+### Session 07 — Firebase Authentication, Authorization & MinIO Storage
+
+**Firebase Authentication**
+- Every request needs a valid Firebase ID token in the `Authorization: Bearer` header
+- The API checks the token's signature, issuer, audience, and expiry before letting the request through 
+
+**Authorization **
+- All endpoints require a signed-in user by default so i had to add (RequireAuthenticatedUser) in a filter in program.cs
+- So any signed in user can use any enpoint exept where the endpoint has a decorator [Authorise (Roles =admin)]
+- So the authorization is done internaly and not managed by firebase 
+
+**Object Storage (Minio)**
+- `IFileStorageService` is an interface for uploading, downloading, and deleting files
+- `MinioFileStorageService` implements it using the Minio SDK
+
+**Product Images moved to be stored in Minio and DB**
+- Before the image was stored in WWWroot
+- Now uploading a new image replaces the old one, both in Minio and in the database
+- Only the file name, type, and Minio key are stored in the database not the file itself
+
+**Supplier Documents**
+- Same idea as product images, but a supplier can have more than one document
+
+**Role Bootstrap Endpoint**
+- Because the authorisation is done localy, on program startup a user should be assigned a role using this endpoint
+- So it is the only endpoint that can be accesed with no jwt token, i generated a random key to use in this case
+- I think this is better for testing purposes to be able to change the role of a user on the go to be able to test different senarios rather than hard coding each user and its roles
+
+**Swagger Authorize Button**
+- Adds an "Authorize" button in Swagger so a token can be pasted once and reused for every request
+- But i needed to get the token throw a cmd login using rest and the api of my firebase
+
+**Note that the screenshots of this lab are at the end of the readme**
+
 ## Seeded Reference IDs
 
 Data resets on every restart but always seeds with these fixed GUIDs, so you can hit `GET` /
@@ -110,7 +144,7 @@ Data resets on every restart but always seeds with these fixed GUIDs, so you can
 | `0d18b21e-20cf-4b83-9424-9c2932ad5787` | Green Tea | BEV-002 |
 
 ## Latest App Features Screenshots
-
+## Session 6
 ### Localization
 
 <img width="1480" height="796" alt="image" src="https://github.com/user-attachments/assets/fd550e04-8709-4c47-8331-2f0a1ebf24a8" />
@@ -146,3 +180,29 @@ Auto Archived the product after the hangfire trigger
 ### Slow request log warnning (threshold = 500 ms)
 
 <img width="830" height="118" alt="image" src="https://github.com/user-attachments/assets/694fa663-63f5-49ba-9898-171df2f4ee9b" />
+
+
+
+## Session 7
+
+### Using the normal user token (normal get and forbidden post)
+<img width="1783" height="711" alt="image" src="https://github.com/user-attachments/assets/cb83a181-0706-4180-9682-0a6b7d521d29" />
+<img width="1754" height="692" alt="image" src="https://github.com/user-attachments/assets/61107f25-22d5-49c0-9ee1-7b7b8d3e5f1f" />
+
+### Trying with no token (401)
+<img width="1774" height="532" alt="image" src="https://github.com/user-attachments/assets/9cbb3b30-0e7f-4986-ab33-f9cd38c3aa39" />
+
+### Trying with expired token (401)
+<img width="1781" height="548" alt="image" src="https://github.com/user-attachments/assets/8db9ef78-cf8c-426e-87c5-5ec6fef6ed2f" />
+
+### Minio bucket and tested docs and images
+<img width="1878" height="385" alt="image" src="https://github.com/user-attachments/assets/ffce9e15-3286-4676-a351-39bee70c4ccf" />
+<img width="1535" height="276" alt="image" src="https://github.com/user-attachments/assets/a1e8d47a-517c-496d-af73-c9b9e3a66ba3" />
+
+### Firebase test users
+<img width="1685" height="611" alt="image" src="https://github.com/user-attachments/assets/39c1d732-451e-4bd9-a4bc-b873220f46bd" />
+
+
+
+
+
