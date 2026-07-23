@@ -15,7 +15,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Localization;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Minio;
+using Minio.DataModel.Args;
 using Serilog;
 using StackExchange.Redis;
 using Warehouse.Application.Commands.CreateProduct;
@@ -51,7 +53,6 @@ try
 
     builder.Host.UseSerilog();
 
-    // Any authenticated user by default; write endpoints add [Authorize(Roles = "admin")] on top.
     builder.Services.AddControllers(options =>
     {
         options.Filters.Add(new AuthorizeFilter(new AuthorizationPolicyBuilder()
@@ -84,11 +85,16 @@ try
         Credential = GoogleCredential.FromFile(firebaseServiceAccountPath)
     });
 
+    using var firebaseKeyHttpClient = new HttpClient();
+    var firebaseJwksJson = await firebaseKeyHttpClient.GetStringAsync(
+        "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com");
+    var firebaseSigningKeys = new JsonWebKeySet(firebaseJwksJson).GetSigningKeys();
+
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
             options.MapInboundClaims = false; // keep "sub" as-is instead of remapping to a claim URI
-            options.Authority = $"https://securetoken.google.com/{firebaseProjectId}";
+            options.IncludeErrorDetails = builder.Environment.IsDevelopment();
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
@@ -96,7 +102,16 @@ try
                 ValidateAudience = true,
                 ValidAudience = firebaseProjectId,
                 ValidateLifetime = true,
-                RoleClaimType = "role"
+                RoleClaimType = "role",
+                IssuerSigningKeys = firebaseSigningKeys
+            };
+            options.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    Log.Error(context.Exception, "JWT authentication failed");
+                    return Task.CompletedTask;
+                }
             };
         });
 
@@ -175,16 +190,34 @@ try
     builder.Services.AddScoped<ProductExpiryCheckJob>();
 
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(c => c.OperationFilter<AcceptLanguageHeaderFilter>());
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.OperationFilter<AcceptLanguageHeaderFilter>();
+
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "Paste the Firebase ID token here. The 'Bearer ' prefix is added automatically."
+        });
+
+        c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+        });
+    });
 
     var app = builder.Build();
 
     using (var scope = app.Services.CreateScope())
     {
         var minio = scope.ServiceProvider.GetRequiredService<IMinioClient>();
-        var bucketExists = await minio.BucketExistsAsync(new Minio.DataModel.Args.BucketExistsArgs().WithBucket(minioBucketName));
+        var bucketExists = await minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(minioBucketName));
         if (!bucketExists)
-            await minio.MakeBucketAsync(new Minio.DataModel.Args.MakeBucketArgs().WithBucket(minioBucketName));
+            await minio.MakeBucketAsync(new MakeBucketArgs().WithBucket(minioBucketName));
     }
 
     if (app.Environment.IsDevelopment())
