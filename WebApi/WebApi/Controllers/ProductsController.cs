@@ -2,6 +2,7 @@ namespace WebApi.Controllers;
 
 using MediatR;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using System.Globalization;
@@ -13,6 +14,8 @@ using Warehouse.Application.Commands.UpdateProductPrice;
 using Warehouse.Application.Commands.ArchiveProduct;
 using Warehouse.Application.Commands.AssignSupplierToProduct;
 using Warehouse.Application.Commands.UploadProductImage;
+using Warehouse.Application.Commands.DeleteProductImage;
+using Warehouse.Application.Queries.DownloadProductImage;
 using Warehouse.Application.Queries.GetProductById;
 using Warehouse.Application.Queries.ListProducts;
 using Warehouse.Application.Queries.SearchProducts;
@@ -62,6 +65,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<ActionResult<ProductViewModel>> Create([FromBody] CreateProductRequest request, CancellationToken cancellationToken)
     {
         var product = await _mediator.Send(new CreateProductCommand(
@@ -73,6 +77,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/quantity")]
+    [Authorize(Roles = "admin")]
     public async Task<ActionResult<ProductViewModel>> UpdateQuantity([FromRoute] string id, [FromBody] UpdateProductQuantityRequest request, CancellationToken cancellationToken)
     {
         var product = await _mediator.Send(new UpdateProductQuantityCommand(id, request.QuantityInStock), cancellationToken);
@@ -82,6 +87,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/price")]
+    [Authorize(Roles = "admin")]
     public async Task<ActionResult<ProductViewModel>> UpdatePrice([FromRoute] string id, [FromBody] UpdateProductPriceRequest request, CancellationToken cancellationToken)
     {
         var product = await _mediator.Send(new UpdateProductPriceCommand(id, request.Price), cancellationToken);
@@ -91,6 +97,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/image")]
+    [Authorize(Roles = "admin")]
     public async Task<ActionResult<UploadProductImageResponse>> UploadImage([FromRoute] string id, IFormFile file, CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
@@ -103,19 +110,34 @@ public class ProductsController : ControllerBase
         if (file.Length > 2 * 1024 * 1024)
             return BadRequest("Max file size is 2 MB.");
 
-        var fileName = $"{id}{ext}";
-        var filePath = Path.Combine("wwwroot", "uploads", fileName);
-
-        using var ms = new MemoryStream();
-        await file.CopyToAsync(ms, cancellationToken);
-
-        var result = await _mediator.Send(new UploadProductImageCommand(id, fileName, filePath, ms.ToArray()), cancellationToken);
+        await using var stream = file.OpenReadStream();
+        var result = await _mediator.Send(new UploadProductImageCommand(id, file.FileName, file.ContentType, stream), cancellationToken);
         if (result == null) return NotFound(_localizer["ProductNotFound"].Value);
 
         return Ok(result);
     }
 
+    [HttpGet("{id}/image")]
+    public async Task<IActionResult> DownloadImage([FromRoute] string id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new DownloadProductImageQuery(id), cancellationToken);
+        if (result == null) return NotFound(_localizer["ProductNotFound"].Value);
+
+        return File(result.Content, result.ContentType, result.FileName);
+    }
+
+    [HttpDelete("{id}/image")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DeleteImage([FromRoute] string id, CancellationToken cancellationToken)
+    {
+        var deleted = await _mediator.Send(new DeleteProductImageCommand(id), cancellationToken);
+        if (!deleted) return NotFound(_localizer["ProductNotFound"].Value);
+
+        return NoContent();
+    }
+
     [HttpDelete("{id}")]
+    [Authorize(Roles = "admin")]
     public async Task<ActionResult<ProductViewModel>> Delete([FromRoute] string id, CancellationToken cancellationToken)
     {
         var product = await _mediator.Send(new ArchiveProductCommand(id), cancellationToken);
@@ -139,6 +161,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost("{id}/assign-supplier/{supplierId}")]
+    [Authorize(Roles = "admin")]
     public async Task<ActionResult<ProductViewModel>> AssignSupplier([FromRoute] string id, [FromRoute] string supplierId, CancellationToken cancellationToken)
     {
         var product = await _mediator.Send(new AssignSupplierToProductCommand(id, supplierId), cancellationToken);

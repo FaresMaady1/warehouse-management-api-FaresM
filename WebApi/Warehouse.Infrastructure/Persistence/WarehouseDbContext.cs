@@ -5,6 +5,7 @@ using Warehouse.Domain.Products;
 using Warehouse.Domain.Suppliers;
 using Warehouse.Domain.ProductImages;
 using Warehouse.Domain.StockMovements;
+using Warehouse.Domain.SupplierDocuments;
 
 public class WarehouseDbContext : DbContext
 {
@@ -14,6 +15,7 @@ public class WarehouseDbContext : DbContext
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<SupplierDocument> SupplierDocuments => Set<SupplierDocument>();
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,7 +49,16 @@ public class WarehouseDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(m => m.ProductId);
         });
+        modelBuilder.Entity<SupplierDocument>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.UploadedAt).HasColumnType("timestamp without time zone");
+            entity.HasOne<Supplier>()
+                .WithMany()
+                .HasForeignKey(d => d.SupplierId);
+        });
         SeedData(modelBuilder);
+        
     }
 
     private static void SeedData(ModelBuilder modelBuilder)
