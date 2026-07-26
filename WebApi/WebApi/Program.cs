@@ -23,11 +23,13 @@ using StackExchange.Redis;
 using Warehouse.Application.Commands.CreateProduct;
 using Warehouse.Application.Jobs;
 using Warehouse.Domain.Caching;
+using Warehouse.Domain.Events;
 using Warehouse.Domain.Identity;
 using Warehouse.Domain.Repositories;
 using Warehouse.Domain.Storage;
 using Warehouse.Infrastructure.Caching;
 using Warehouse.Infrastructure.Identity;
+using Warehouse.Infrastructure.Messaging;
 using Warehouse.Infrastructure.Persistence;
 using Warehouse.Infrastructure.Storage;
 using WebApi.HealthChecks;
@@ -137,6 +139,15 @@ try
 
     builder.Services.AddScoped<IFileStorageService>(sp =>
         new MinioFileStorageService(sp.GetRequiredService<IMinioClient>(), minioBucketName));
+    // rabitmq
+    builder.Services.AddSingleton<IEventPublisher>(sp => new RabbitMqEventPublisher(
+        builder.Configuration["RabbitMq:HostName"]!,
+        int.Parse(builder.Configuration["RabbitMq:Port"]!),
+        builder.Configuration["RabbitMq:UserName"]!,
+        builder.Configuration["RabbitMq:Password"]!,
+        builder.Configuration["RabbitMq:Exchange"]!,
+        sp.GetRequiredService<ILogger<RabbitMqEventPublisher>>()));
+    
 
     // Localization
     builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
