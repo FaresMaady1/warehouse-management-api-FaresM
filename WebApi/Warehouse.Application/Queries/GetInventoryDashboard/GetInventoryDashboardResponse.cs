@@ -1,9 +1,10 @@
-﻿namespace Warehouse.Application.Queries.GetInventoryDashboard;
+namespace Warehouse.Application.Queries.GetInventoryDashboard;
 
 public record GetInventoryDashboardResponse(
     ProductSummary? Products,
     SupplierSummary? Suppliers,
-    StockMovementSummary? RecentActivity);
+    StockMovementSummary? RecentActivity,
+    int? UnreadNotifications);
 
 public record ProductSummary(
     int TotalProducts,

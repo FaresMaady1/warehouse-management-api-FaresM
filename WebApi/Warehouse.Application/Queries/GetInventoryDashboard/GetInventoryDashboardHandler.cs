@@ -1,7 +1,8 @@
-﻿namespace Warehouse.Application.Queries.GetInventoryDashboard;
+namespace Warehouse.Application.Queries.GetInventoryDashboard;
 
 using MediatR;
 using Microsoft.Extensions.Logging;
+using Warehouse.Domain.Notifications;
 using Warehouse.Domain.Repositories;
 
 public class GetInventoryDashboardHandler : IRequestHandler<GetInventoryDashboardQuery, GetInventoryDashboardResponse>
@@ -9,17 +10,20 @@ public class GetInventoryDashboardHandler : IRequestHandler<GetInventoryDashboar
     private readonly IProductRepository _productRepository;
     private readonly ISupplierRepository _supplierRepository;
     private readonly IStockMovementRepository _stockMovementRepository;
+    private readonly INotificationServiceClient _notificationServiceClient;
     private readonly ILogger<GetInventoryDashboardHandler> _logger;
 
     public GetInventoryDashboardHandler(
         IProductRepository productRepository,
         ISupplierRepository supplierRepository,
         IStockMovementRepository stockMovementRepository,
+        INotificationServiceClient notificationServiceClient,
         ILogger<GetInventoryDashboardHandler> logger)
     {
         _productRepository = productRepository;
         _supplierRepository = supplierRepository;
         _stockMovementRepository = stockMovementRepository;
+        _notificationServiceClient = notificationServiceClient;
         _logger = logger;
     }
 
@@ -28,12 +32,14 @@ public class GetInventoryDashboardHandler : IRequestHandler<GetInventoryDashboar
         var productsTask = GetProductSummaryAsync(cancellationToken);
         var suppliersTask = GetSupplierSummaryAsync(cancellationToken);
         var recentActivityTask = GetStockMovementSummaryAsync(cancellationToken);
+        var unreadNotificationsTask = GetUnreadNotificationsAsync(cancellationToken);
 
         var products = await productsTask;
         var suppliers = await suppliersTask;
         var recentActivity = await recentActivityTask;
+        var unreadNotifications = await unreadNotificationsTask;
 
-        return new GetInventoryDashboardResponse(products, suppliers, recentActivity);
+        return new GetInventoryDashboardResponse(products, suppliers, recentActivity, unreadNotifications);
     }
 
     private async Task<ProductSummary?> GetProductSummaryAsync(CancellationToken cancellationToken)
@@ -86,6 +92,21 @@ public class GetInventoryDashboardHandler : IRequestHandler<GetInventoryDashboar
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load recent stock activity for the inventory dashboard.");
+            return null;
+        }
+    }
+
+    private async Task<int?> GetUnreadNotificationsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Notification Service is a separate microservice with its own lifecycle - if it's
+            // down or slow, the rest of the dashboard should still load fine without this number.
+            return await _notificationServiceClient.GetUnreadCountAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not reach the Notification Service for the unread count.");
             return null;
         }
     }
