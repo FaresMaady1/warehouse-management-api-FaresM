@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Warehouse.Notifications.Application.Preferences;
 using Warehouse.Notifications.Application.Queries.ListNotifications;
 using Warehouse.Notifications.Domain.Notifications;
+using Warehouse.Notifications.Infrastructure.Messaging;
 using Warehouse.Notifications.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +16,10 @@ builder.Services.AddDbContext<NotificationsDbContext>(options => options.UseNpgs
 
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ListNotificationsQuery).Assembly));
+
+builder.Services.Configure<NotificationPreferences>(builder.Configuration.GetSection("NotificationPreferences"));
+
+builder.Services.AddHostedService<WarehouseEventConsumer>();
 
 var app = builder.Build();
 
