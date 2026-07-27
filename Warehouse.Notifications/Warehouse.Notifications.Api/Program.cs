@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Warehouse.Notifications.Api.Messaging;
 using Warehouse.Notifications.Application.Preferences;
 using Warehouse.Notifications.Application.Queries.ListNotifications;
 using Warehouse.Notifications.Domain.Notifications;
-using Warehouse.Notifications.Infrastructure.Messaging;
 using Warehouse.Notifications.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);

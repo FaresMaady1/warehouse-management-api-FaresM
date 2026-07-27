@@ -13,6 +13,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{C7CE441D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Warehouse.Domain.Tests", "tests\Warehouse.Domain.Tests\Warehouse.Domain.Tests.csproj", "{684C2437-9FA4-423A-9D34-BF1838A2F67A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WebApi", "WebApi", "{1F83002F-0863-4E79-B695-7E3CD7AA7358}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Warehouse.Api.UnitTests", "tests\Warehouse.Api.UnitTests\Warehouse.Api.UnitTests.csproj", "{A9150A49-A71D-45B3-A212-48F899BF3741}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Warehouse.Api.IntegrationTests", "tests\Warehouse.Api.IntegrationTests\Warehouse.Api.IntegrationTests.csproj", "{658B975D-9D42-4764-AECB-97B5B0C5263F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,8 +45,19 @@ Global
 		{684C2437-9FA4-423A-9D34-BF1838A2F67A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{684C2437-9FA4-423A-9D34-BF1838A2F67A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{684C2437-9FA4-423A-9D34-BF1838A2F67A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9150A49-A71D-45B3-A212-48F899BF3741}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9150A49-A71D-45B3-A212-48F899BF3741}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9150A49-A71D-45B3-A212-48F899BF3741}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9150A49-A71D-45B3-A212-48F899BF3741}.Release|Any CPU.Build.0 = Release|Any CPU
+		{658B975D-9D42-4764-AECB-97B5B0C5263F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{658B975D-9D42-4764-AECB-97B5B0C5263F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{658B975D-9D42-4764-AECB-97B5B0C5263F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{658B975D-9D42-4764-AECB-97B5B0C5263F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{684C2437-9FA4-423A-9D34-BF1838A2F67A} = {C7CE441D-77DA-44BE-91CF-6B27E6334FC5}
+		{94170B63-8DA9-4E96-9EFE-E91F37165344} = {1F83002F-0863-4E79-B695-7E3CD7AA7358}
+		{A9150A49-A71D-45B3-A212-48F899BF3741} = {1F83002F-0863-4E79-B695-7E3CD7AA7358}
+		{658B975D-9D42-4764-AECB-97B5B0C5263F} = {1F83002F-0863-4E79-B695-7E3CD7AA7358}
 	EndGlobalSection
 EndGlobal

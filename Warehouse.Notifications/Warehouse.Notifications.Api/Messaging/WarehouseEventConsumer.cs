@@ -1,18 +1,24 @@
-namespace Warehouse.Notifications.Infrastructure.Messaging;
+namespace Warehouse.Notifications.Api.Messaging;
 
 using System.Text;
 using System.Text.Json;
 using MediatR;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Warehouse.Notifications.Application.Commands.CreateFileUploadedNotification;
 using Warehouse.Notifications.Application.Commands.CreateStockLowNotification;
 using Warehouse.Notifications.Application.Events;
 
+// Background service that owns the RabbitMQ connection for this API. Runs after the host has
+// already started, so a RabbitMQ that isn't up yet doesn't stop the rest of the service from
+// working (Swagger, the notifications list/read endpoints, etc. all still respond).
+//
+// Lives in Api rather than Infrastructure: a consumer is an entry point into the application
+// the same way a controller is - something outside the app (RabbitMQ, in this case, instead
+// of an HTTP client) triggers a use case by sending a command through IMediator. Infrastructure
+// is reserved for things the app depends on (persistence, external clients); it doesn't drive
+// the app. Keeping the consumer here also means Infrastructure only needs a reference to
+// Domain, same as the main solution's Infrastructure project.
 public class WarehouseEventConsumer : BackgroundService
 {
     private const int MaxRetries = 3;
@@ -85,7 +91,7 @@ public class WarehouseEventConsumer : BackgroundService
 
         _channel.ExchangeDeclare(exchange, ExchangeType.Topic, durable: true);
 
-        // bonnus 3 dead letter 
+        // Dead-letter side (Bonus 3) - anything nacked with requeue:false after MaxRetries lands here.
         _channel.ExchangeDeclare(deadLetterExchange, ExchangeType.Fanout, durable: true);
         _channel.QueueDeclare(deadLetterQueue, durable: true, exclusive: false, autoDelete: false);
         _channel.QueueBind(deadLetterQueue, deadLetterExchange, routingKey: "");
@@ -137,6 +143,8 @@ public class WarehouseEventConsumer : BackgroundService
         }
     }
 
+    // Retry handling (Bonus 3): track attempts ourselves via a header, republish up to MaxRetries
+    // times, then give up and let the queue's dead-letter-exchange argument route it to the DLQ.
     private void RetryOrDeadLetter(BasicDeliverEventArgs ea)
     {
         var retryCount = GetRetryCount(ea.BasicProperties);
