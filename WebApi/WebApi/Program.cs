@@ -276,8 +276,11 @@ try
         Cron.Daily);
 
     app.Run();
+    
 }
+
 finally
 {
     Log.CloseAndFlush();
 }
+public partial class Program { }

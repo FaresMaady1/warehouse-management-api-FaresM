@@ -1,6 +1,8 @@
 ﻿namespace Warehouse.Api.IntegrationTests;
 
-public class IntegrationTestCollection
+using Xunit;
+
+[CollectionDefinition("Integration Tests")]
+public class IntegrationTestCollection : ICollectionFixture<CustomWebApplicationFactory>
 {
-    
 }
