@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="RabbitMQ.Client" Version="6.8.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Warehouse.Notifications.Domain\Warehouse.Notifications.Domain.csproj" />
+    <ProjectReference Include="..\Warehouse.Notifications.Application\Warehouse.Notifications.Application.csproj" />
+    <ProjectReference Include="..\Warehouse.Notifications.Infrastructure\Warehouse.Notifications.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

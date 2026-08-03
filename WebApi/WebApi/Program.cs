@@ -23,11 +23,15 @@ using StackExchange.Redis;
 using Warehouse.Application.Commands.CreateProduct;
 using Warehouse.Application.Jobs;
 using Warehouse.Domain.Caching;
+using Warehouse.Domain.Events;
 using Warehouse.Domain.Identity;
+using Warehouse.Domain.Notifications;
 using Warehouse.Domain.Repositories;
 using Warehouse.Domain.Storage;
 using Warehouse.Infrastructure.Caching;
+using Warehouse.Infrastructure.Http;
 using Warehouse.Infrastructure.Identity;
+using Warehouse.Infrastructure.Messaging;
 using Warehouse.Infrastructure.Persistence;
 using Warehouse.Infrastructure.Storage;
 using WebApi.HealthChecks;
@@ -137,6 +141,21 @@ try
 
     builder.Services.AddScoped<IFileStorageService>(sp =>
         new MinioFileStorageService(sp.GetRequiredService<IMinioClient>(), minioBucketName));
+      // rabitmq
+      builder.Services.AddSingleton<IEventPublisher>(sp => new RabbitMqEventPublisher(
+        builder.Configuration["RabbitMq:HostName"]!,
+        int.Parse(builder.Configuration["RabbitMq:Port"]!),
+        builder.Configuration["RabbitMq:UserName"]!,
+        builder.Configuration["RabbitMq:Password"]!,
+        builder.Configuration["RabbitMq:Exchange"]!,
+        sp.GetRequiredService<ILogger<RabbitMqEventPublisher>>()));
+
+    // Bonus - unread count on the admin dashboard
+    builder.Services.AddHttpClient<INotificationServiceClient, NotificationServiceClient>(client =>
+    {
+        client.BaseAddress = new Uri(builder.Configuration["NotificationService:BaseUrl"]!);
+        client.Timeout = TimeSpan.FromSeconds(builder.Configuration.GetValue("NotificationService:TimeoutSeconds", 3));
+    });
 
     // Localization
     builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
