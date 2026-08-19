@@ -130,6 +130,22 @@ expected of a production-ready service.
 
 **Note that the screenshots of this lab are at the end of the readme**
 
+### Session 09 — Unit Testing & Integration Testing
+
+**Unit Tests**
+- Added Moq and FluentAssertions to the existing test project and wrote tests for the product and supplier handlers (create, search, update quantity, update price, archive, assign supplier, create/deactivate supplier)
+- Added tests for the image upload handler and the request timing middleware
+- There's no separate "file upload service" or "product service" in this code since everything already runs through MediatR handlers, so the tests target those handlers directly instead
+
+**Integration Tests**
+- Added a new `Warehouse.Api.IntegrationTests` project that boots the real API in memory using `WebApplicationFactory`
+- The real app connects to Postgres, Redis, MinIO, and Firebase on startup, so for tests I swap the database for an EF Core in-memory database, and swap Redis/MinIO for small fake in-memory versions, so the tests don't need those services running
+- Firebase itself still runs for real on startup since it fetches its keys from Google, so login in the tests is done with a locally generated test token instead of a real Firebase login
+- Covered all the main product and supplier endpoints (get, search, create, update, delete/archive, assign supplier), image upload (valid/invalid file type, oversized file), a Swagger check, and one full end-to-end flow (create supplier → create product → assign supplier → upload image → update quantity/price → archive → verify archived)
+- Added a few tests for bad requests (invalid id, missing fields, no login token, wrong role), which also turned up a couple of validation gaps in the existing code worth a second look later
+
+**Note that the screenshots of this lab are at the end of the readme**
+
 ## Seeded Reference IDs
 
 Data resets on every restart but always seeds with these fixed GUIDs, so you can hit `GET` /
@@ -218,6 +234,12 @@ Auto Archived the product after the hangfire trigger
 
 ### Firebase test users
 <img width="1685" height="611" alt="image" src="https://github.com/user-attachments/assets/39c1d732-451e-4bd9-a4bc-b873220f46bd" />
+
+## Session 9
+
+### Succeded tests
+<img width="797" height="258" alt="image" src="https://github.com/user-attachments/assets/19b7a5b3-06d2-4582-ae89-d0b8035abadc" />
+
 
 
 ## Session 8
