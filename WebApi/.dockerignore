@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+tests/
+*.user
+.git/
+.gitignore
+README.md
+
+# never let a secret get baked into an image layer -
+# it's mounted in at runtime instead (see docker-compose.yml / manual setup)
+firebase-service-account.json

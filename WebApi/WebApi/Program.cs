@@ -233,6 +233,9 @@ try
 
     using (var scope = app.Services.CreateScope())
     {
+        var db = scope.ServiceProvider.GetRequiredService<WarehouseDbContext>();
+        await db.Database.MigrateAsync();
+        
         var minio = scope.ServiceProvider.GetRequiredService<IMinioClient>();
         var bucketExists = await minio.BucketExistsAsync(new BucketExistsArgs().WithBucket(minioBucketName));
         if (!bucketExists)

@@ -1,16 +1,139 @@
+# Consolidated compose file for the whole Warehouse system (WebApi + Notification microservice).
+# This replaces the 3 old partial files:
+#   - docker-compose.yml            (used to hold only minio)
+#   - docker-compose.rabbitmq.yml   (used to hold only rabbitmq)
+#   - Warehouse.Notifications/docker-compose.yml (used to hold only notifications-db)
+#
+# Networking is deliberately split into 5 small networks instead of one flat network -
+# each infra container only sits on the network(s) of the app(s) that actually talk to it.
+# Only warehouse-api and notification-api publish a port to the host.
+
 services:
-  minio:
+
+  # ---------------- Infrastructure (no "ports:" - internal only) ----------------
+
+  warehouse-db:
+    image: postgres:16
+    container_name: warehouse-db
+    environment:
+      - POSTGRES_DB=WarehouseDb
+      - POSTGRES_USER=fares
+      - POSTGRES_PASSWORD=1234
+    volumes:
+      - warehouse_db_data:/var/lib/postgresql/data
+    networks:
+      - warehouse-db-net
+    restart: unless-stopped
+
+  warehouse-redis:
+    image: redis:7-alpine
+    container_name: warehouse-redis
+    networks:
+      - warehouse-cache-net
+    restart: unless-stopped
+
+  warehouse-minio:
     image: minio/minio
     container_name: warehouse-minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     environment:
-      MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: password123
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password123
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
+    networks:
+      - warehouse-storage-net
+    restart: unless-stopped
+
+  warehouse-rabbitmq:
+    image: rabbitmq:3-management
+    container_name: warehouse-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=warehouse
+      - RABBITMQ_DEFAULT_PASS=warehouse
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - messaging-net
+    restart: unless-stopped
+
+  warehouse-notifications-db:
+    image: postgres:16
+    container_name: warehouse-notifications-db
+    environment:
+      - POSTGRES_DB=NotificationsDb
+      - POSTGRES_USER=notifications
+      - POSTGRES_PASSWORD=notifications
+    volumes:
+      - notifications_db_data:/var/lib/postgresql/data
+    networks:
+      - notification-db-net
+    restart: unless-stopped
+
+  # ---------------- Application services (the only 2 with published ports) ----------------
+
+  notification-api:
+    build:
+      context: ./Warehouse.Notifications
+      dockerfile: Dockerfile
+    container_name: notification-api
+    ports:
+      - "8081:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__NotificationsDb=Host=warehouse-notifications-db;Port=5432;Database=NotificationsDb;Username=notifications;Password=notifications
+      - RabbitMq__HostName=warehouse-rabbitmq
+    depends_on:
+      - warehouse-notifications-db
+      - warehouse-rabbitmq
+    networks:
+      - notification-db-net
+      - messaging-net
+    restart: unless-stopped
+
+  warehouse-api:
+    build:
+      context: ./WebApi
+      dockerfile: Dockerfile
+    container_name: warehouse-api
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__WarehouseDb=Host=warehouse-db;Port=5432;Database=WarehouseDb;Username=fares;Password=1234
+      - ConnectionStrings__Redis=warehouse-redis:6379
+      - Minio__Endpoint=warehouse-minio:9000
+      - Minio__AccessKey=admin
+      - Minio__SecretKey=password123
+      - RabbitMq__HostName=warehouse-rabbitmq
+      - NotificationService__BaseUrl=http://notification-api:8080
+    volumes:
+      # firebase-service-account.json is gitignored - mounted in at runtime, never baked into the image
+      - ./WebApi/WebApi/firebase-service-account.json:/app/firebase-service-account.json:ro
+    depends_on:
+      - warehouse-db
+      - warehouse-redis
+      - warehouse-minio
+      - warehouse-rabbitmq
+      - notification-api
+    networks:
+      - warehouse-db-net
+      - warehouse-cache-net
+      - warehouse-storage-net
+      - messaging-net
+    restart: unless-stopped
+
+networks:
+  warehouse-db-net:
+  warehouse-cache-net:
+  warehouse-storage-net:
+  notification-db-net:
+  messaging-net:
 
 volumes:
+  warehouse_db_data:
   minio_data:
+  rabbitmq_data:
+  notifications_db_data:
