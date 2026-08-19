@@ -16,22 +16,7 @@ expected of a production-ready service.
 - Hangfire (recurring background jobs)
 - Health Checks + Health Checks UI
 - xUnit
-
-## Architecture
-
-Four layers, dependencies pointing inward:
-
-```
-Warehouse.Domain          zero external dependencies — entities, business rules, repository interfaces
-Warehouse.Application  -> commands/queries + handlers (MediatR), one use case each
-Warehouse.Infrastructure  -> EF Core persistence, Redis caching, repository implementations
-WebApi                    -> HTTP entry point (controllers, DI/startup, request contracts)
-```
-
-> `WebApi` fills the role of a `Warehouse.Presentation` layer — it was kept as `WebApi` rather
-> than renamed, a decision made and documented in Session 03 to avoid re-touching an
-> already-large refactor.
-
+ 
 ## Sessions
 
 ### Session 02 — First API
@@ -110,6 +95,38 @@ WebApi                    -> HTTP entry point (controllers, DI/startup, request 
 **Swagger Authorize Button**
 - Adds an "Authorize" button in Swagger so a token can be pasted once and reused for every request
 - But i needed to get the token throw a cmd login using rest and the api of my firebase
+
+### Session 8 - notification microservice
+
+**Project Shape**
+- The project now has a new seperate solution for notification managment so now the project is getting seperated into microservices independent from each other, the new microservice will have its own seperate db that only itself can access. The communication between the two sevices will be done throw rabimq and api calls
+- The new solution is constructed using the same ddd stucture as before with the rabbitmq calls directed in the infrastructure layer
+  
+**Notification trigger and flow**
+- When a stock adjustment brings a product's quantity below 10 (`CreateStockAdjustmentHandler.cs`),
+  or a supplier document is uploaded (`UploadSupplierDocumentHandler.cs`), the main api
+  publishes an event to the `warehouse.events` rabbitmq exchange with a routing key
+  (`stock.low` or `file.uploaded`). The Notification Service's background consumer
+  (`WarehouseEventConsumer.cs`) picks it up from its queue and stores it as an unread
+  notification in its own database. This step is done by message queue not by api call because it is faster and guaranteed arrival and managment by rabbit mq  because the flow of the notification is critical at this stage.
+
+**Read Status**
+- The dashboard (bonus 1) lets the main api show the unread notification count on
+  `/api/inventory/dashboard` by calling the Notification Service's `/api/notifications/unread-count`
+  endpoint over HTTP (`NotificationServiceClient.cs`), instead of reaching into its database
+  directly the two services' data stays fully separate. An api call is used here to seperate the to sevices and no need for the mq here because the data is not critical it is just information.
+
+ **Architectural choises**
+ - The `Events/` folder holds the shape of each message published to rabbitmq. It is in the Application layer rather than Domain
+  because it's a contract type.
+
+- `IEventPublisher` is in `Warehouse.Domain` like all infrastructure realted interfaces used from the beginning of the project. `RabbitMqEventPublisher`, in `Warehouse.Infrastructure`, is the class that implements that interface using `RabbitMQ.Client`.
+
+- The `Messaging/` folder holds the actual RabbitMQ "rountings" on each side: on the main api
+  it's `RabbitMqEventPublisher` (the publish side), on the Notification Service it's
+  `WarehouseEventConsumer` (the consume side). It sits in
+  Infrastructure because Rabbimq is external infrastructure, the same category as MinIO and
+  Redis elsewhere in the project.
 
 **Note that the screenshots of this lab are at the end of the readme**
 
@@ -222,6 +239,21 @@ Auto Archived the product after the hangfire trigger
 
 ### Succeded tests
 <img width="797" height="258" alt="image" src="https://github.com/user-attachments/assets/19b7a5b3-06d2-4582-ae89-d0b8035abadc" />
+
+
+
+## Session 8
+### Rabbitmq management console 
+<img width="1169" height="583" alt="image" src="https://github.com/user-attachments/assets/e344e7fc-ba5d-4de5-ad37-0333eb0085ff" />
+
+
+### Notification created in localhost5220 (notification service) 
+<img width="1758" height="644" alt="image" src="https://github.com/user-attachments/assets/30972e3f-5fb8-4829-b5c5-36cbe982aead" />
+
+
+### Getting info back to main service
+<img width="1121" height="455" alt="image" src="https://github.com/user-attachments/assets/4735afea-f39d-4502-8293-2438efdc5f1a" />
+
 
 
 
